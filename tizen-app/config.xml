@@ -12,8 +12,8 @@
         <tizen:operation name="http://samsung.com/appcontrol/operation/eden_resume"/>
     </tizen:app-control>
 
-    <tizen:application id="tv.wtv.app"
-                       package="tvwtv0001"
+    <tizen:application id="wtvApp0001.wtv"
+                       package="wtvApp0001"
                        required_version="2.3"/>
 
     <content src="index.html"/>
