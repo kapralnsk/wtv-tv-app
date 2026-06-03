@@ -1,0 +1,21 @@
+{
+    "mcpServers": {
+        "playwright": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@playwright/mcp@latest",
+                "--caps=vision,devtools"
+            ]
+        },
+        "mitmproxy": {
+            "command": "uvx",
+            "args": [
+                "mitmproxy-mcp"
+            ],
+            "env": {
+                "MITMPROXY_FLOWS_DIR": "./flows"
+            }
+        }
+    }
+}

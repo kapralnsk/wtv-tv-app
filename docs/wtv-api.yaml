@@ -1,0 +1,461 @@
+openapi: 3.1.0
+
+info:
+  title: w.tv API
+  version: "0.1"
+  description: |
+    Reverse-engineered API surface for w.tv (Twitch-like live streaming platform).
+    All endpoints are unauthenticated — a browser-like User-Agent and Origin header
+    are sufficient for read-only access.
+
+    ## IVS Chat WebSocket
+
+    The live chat channel is an AWS IVS Chat WebSocket, not an HTTP endpoint.
+    It is documented here because OpenAPI has no native WebSocket support.
+
+    **URL:** `wss://edge.ivschat.eu-central-1.amazonaws.com/`
+
+    **Handshake headers:**
+    ```
+    Sec-WebSocket-Protocol: <token from POST /chats/{chatId}/join>
+    Origin: https://w.tv
+    ```
+
+    No post-connect join frame is needed — the room is encoded in the token.
+
+    **Incoming frame (confirmed from live capture):**
+    ```json
+    {
+      "Type": "EVENT",
+      "Id": "SXtPHLoBKSWU",
+      "RequestId": "8d410041-fcf7-4501-b25b-faaac083aaf1",
+      "EventName": "MESSAGE",
+      "Attributes": {
+        "data": "{\"messageId\":\"019e...\",\"content\":\"вау\",\"sender\":{\"userId\":\"019...\",\"nickname\":\"kapral\",\"tags\":[]},\"createdAt\":\"2026-06-01T14:37:17.547Z\"}"
+      },
+      "SendTime": "2026-06-01T14:37:17.572086596Z"
+    }
+    ```
+
+    `Attributes.data` is a JSON-encoded string and must be parsed a second time.
+    Frames with `EventName` other than `"MESSAGE"` should be ignored.
+
+servers:
+  - url: https://profiles-service.w.tv
+    description: Profiles
+  - url: https://streams-search-service.w.tv
+    description: Streams / channels search
+  - url: https://streams-service.w.tv
+    description: Stream lifecycle
+  - url: https://chats-service.w.tv
+    description: Chat
+
+tags:
+  - name: profiles
+  - name: streams
+  - name: chat
+
+paths:
+
+  /api/v1/profiles/by-nickname/{slug}:
+    get:
+      tags: [profiles]
+      summary: Resolve channel slug to userId
+      description: |
+        Returns the userId (= channelId = chatId) for a given channel slug.
+        Skip this call when channelId is already known from the live stream list.
+      parameters:
+        - $ref: '#/components/parameters/slug'
+        - $ref: '#/components/parameters/user_lang'
+      responses:
+        "200":
+          description: Profile resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+
+  /api/v1/streams/live:
+    get:
+      tags: [streams]
+      summary: List live streams
+      description: |
+        Returns all currently live streams sorted by score (viewer count proxy).
+        Each item embeds a nested `channel` object — no separate channel lookup
+        is needed when coming from this endpoint.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [score]
+            default: score
+        - $ref: '#/components/parameters/user_lang'
+      responses:
+        "200":
+          description: Live stream list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveStreamsResponse'
+
+  /api/v1/channels/{channelId}:
+    get:
+      tags: [streams]
+      summary: Get channel detail
+      description: |
+        Returns channel metadata plus the current live stream when `live == true`.
+        Use this when navigating to a channel by slug (after resolving the slug
+        via the profiles endpoint). `channelId == userId` from the profile lookup.
+      parameters:
+        - $ref: '#/components/parameters/channelId'
+        - $ref: '#/components/parameters/user_lang'
+      responses:
+        "200":
+          description: Channel detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelDetailResponse'
+
+  /api/v1/streams/{streamId}/join:
+    post:
+      tags: [streams]
+      summary: Register as a viewer
+      description: |
+        Increments the viewer count for the stream. Fire-and-forget after
+        starting playback. Failure is non-fatal.
+      parameters:
+        - $ref: '#/components/parameters/streamId'
+        - $ref: '#/components/parameters/user_lang'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "204":
+          description: Joined
+
+  /api/v1/chats/{chatId}/join:
+    post:
+      tags: [chat]
+      summary: Get IVS chat token
+      description: |
+        Returns a short-lived AWS IVS KMS token. Pass this token as the
+        `Sec-WebSocket-Protocol` header when opening the IVS Chat WebSocket.
+        Call once per stream session; re-call on WebSocket reconnect.
+        `chatId` is the same value as `channelId`.
+      parameters:
+        - $ref: '#/components/parameters/chatId'
+        - $ref: '#/components/parameters/user_lang'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: IVS token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatJoinResponse'
+
+  /api/v1/chats/{chatId}/messages:
+    get:
+      tags: [chat]
+      summary: Get recent chat messages (backlog)
+      description: |
+        Returns recent messages for the chat room. Response is newest-first.
+        `chatId` is the same value as `channelId`.
+      parameters:
+        - $ref: '#/components/parameters/chatId'
+        - $ref: '#/components/parameters/user_lang'
+      responses:
+        "200":
+          description: Message backlog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatBacklogResponse'
+
+components:
+
+  parameters:
+    slug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Channel slug as it appears in the w.tv URL (e.g. "dunduk")
+    channelId:
+      name: channelId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: "Channel ID — equals userId from profile lookup"
+    streamId:
+      name: streamId
+      in: path
+      required: true
+      schema:
+        type: string
+    chatId:
+      name: chatId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: "Chat room ID — equals channelId"
+    user_lang:
+      name: user_lang
+      in: query
+      schema:
+        type: string
+        default: en
+
+  schemas:
+
+    ProfileResponse:
+      type: object
+      required: [profile]
+      properties:
+        profile:
+          $ref: '#/components/schemas/Profile'
+
+    Profile:
+      type: object
+      required: [userId, nickname]
+      properties:
+        userId:
+          type: string
+          description: "Doubles as channelId and chatId"
+        nickname:
+          type: string
+        nicknameColor:
+          type: string
+          description: "Hex color without leading #; may be empty"
+
+    LiveStreamsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LiveStreamItem'
+
+    LiveStreamItem:
+      type: object
+      required: [streamId, playbackUrl, channel]
+      properties:
+        streamId:
+          type: string
+        title:
+          type: string
+        state:
+          type: string
+          example: started
+        startedAt:
+          type: string
+          format: date-time
+        playbackUrl:
+          type: string
+          description: "Direct IVS HLS master playlist URL — no separate token call needed"
+        thumbnailUrl:
+          type: string
+        viewers:
+          type: integer
+        bitrate:
+          type: integer
+          description: bps
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              tag:
+                type: string
+              text:
+                type: string
+        subcategory:
+          nullable: true
+          type: object
+          description: "Absent (not null) when channel has no category set"
+          properties:
+            subcategoryTag:
+              type: string
+            name:
+              type: string
+        channel:
+          $ref: '#/components/schemas/ChannelSummary'
+
+    ChannelSummary:
+      type: object
+      required: [channelId, name, live]
+      properties:
+        channelId:
+          type: string
+        name:
+          type: string
+        live:
+          type: boolean
+        liveStreamId:
+          type: string
+        verified:
+          type: boolean
+
+    ChannelDetailResponse:
+      type: object
+      required: [channel]
+      properties:
+        channel:
+          $ref: '#/components/schemas/ChannelDetail'
+
+    ChannelDetail:
+      type: object
+      required: [channelId, name, live]
+      properties:
+        channelId:
+          type: string
+        name:
+          type: string
+        followers:
+          type: integer
+        live:
+          type: boolean
+        liveStreamId:
+          type: string
+        verified:
+          type: boolean
+        liveStream:
+          description: "Present only when live == true"
+          $ref: '#/components/schemas/LiveStreamDetail'
+
+    LiveStreamDetail:
+      type: object
+      required: [streamId, playbackUrl]
+      properties:
+        streamId:
+          type: string
+        title:
+          type: string
+        state:
+          type: string
+          example: started
+        startedAt:
+          type: string
+          format: date-time
+        playbackUrl:
+          type: string
+          description: "Direct IVS HLS master playlist URL"
+        viewers:
+          type: integer
+        bitrate:
+          type: integer
+
+    ChatJoinResponse:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: "Short-lived AWS IVS KMS token for the WebSocket handshake"
+        tags:
+          type: array
+          items:
+            type: string
+
+    ChatBacklogResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          description: "Newest-first"
+          items:
+            $ref: '#/components/schemas/BacklogMessage'
+
+    BacklogMessage:
+      type: object
+      required: [messageId, content, sender]
+      properties:
+        messageId:
+          type: string
+          description: "ULID — monotonically increasing, encodes timestamp"
+        type:
+          type: string
+          example: MESSAGE
+        content:
+          type: string
+          description: "Message body; emote names are inline as :emoteName:"
+        sender:
+          $ref: '#/components/schemas/MessageSender'
+
+    MessageSender:
+      type: object
+      required: [userId, nickname]
+      properties:
+        userId:
+          type: string
+        nickname:
+          type: string
+        tags:
+          type: array
+          description: "Badge source — always [] in captures; structure unconfirmed"
+          items: {}
+
+    IvsChatWsFrame:
+      description: |
+        Incoming WebSocket frame from wss://edge.ivschat.eu-central-1.amazonaws.com/.
+        Only frames with EventName == "MESSAGE" carry chat messages.
+        Attributes.data is a JSON-encoded string and must be parsed separately.
+      type: object
+      required: [Type, EventName, Attributes, SendTime]
+      properties:
+        Type:
+          type: string
+          example: EVENT
+        Id:
+          type: string
+        RequestId:
+          type: string
+        EventName:
+          type: string
+          description: "Filter on 'MESSAGE'; ignore all other values"
+          example: MESSAGE
+        Attributes:
+          type: object
+          required: [data]
+          properties:
+            data:
+              type: string
+              description: "JSON-encoded IvsChatMessageData — parse this string"
+        SendTime:
+          type: string
+          format: date-time
+
+    IvsChatMessageData:
+      description: "The parsed value of IvsChatWsFrame.Attributes.data"
+      type: object
+      required: [messageId, content, sender]
+      properties:
+        messageId:
+          type: string
+        content:
+          type: string
+        sender:
+          $ref: '#/components/schemas/MessageSender'
+        createdAt:
+          type: string
+          format: date-time

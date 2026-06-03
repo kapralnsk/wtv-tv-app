@@ -1,0 +1,175 @@
+feature: load_live_stream
+captured: 2026-06-01
+
+# ── Spec-model correction ─────────────────────────────────────────────────────
+#
+# The spec expected an accessToken/signature/expiresAt call before the manifest.
+# That model is WRONG. w.tv exposes playbackUrl (a direct AWS IVS .m3u8 URL)
+# inside every stream object. No separate token call is needed for playback.
+# Feed playbackUrl straight to Media3 HlsMediaSource.
+
+# ── REST endpoints ────────────────────────────────────────────────────────────
+
+endpoints:
+
+  # DEPENDENCY — used to populate the channel grid AND to get playbackUrl
+  # directly without opening the channel page. The TV app can read everything
+  # it needs from this one call.
+  - id: streams_live
+    method: GET
+    url: https://streams-search-service.w.tv/api/v1/streams/live
+    params:
+      query:
+        limit:    50
+        sort:     score        # descending by score; first item = top stream
+        user_lang: en
+    auth: none
+    response:
+      data:                    # array
+        - streamId:    string  # ULID
+          title:       string  # may be empty ""
+          state:       started
+          startedAt:   string  # ISO-8601
+          playbackUrl: string  # ⚠ direct IVS .m3u8 — see manifest_url_pattern
+          thumbnailUrl: string
+          viewers:     number  # live viewer count → spec field: viewerCount
+          bitrate:     number  # bps, informational
+          tags:        array   # [{"tag":"lang:en","text":"en"}, ...]
+          subcategory:         # nullable — absent when channel has no category
+            subcategoryTag: string
+            name:           string  # → spec field: categoryName
+          channel:
+            channelId: string  # = userId from profiles; use as chatId
+            name:      string
+            live:      boolean
+            liveStreamId: string  # == streamId above
+            verified:  boolean
+
+  # OPTIONAL — only needed if you have a channel slug but not a channelId.
+  # Skip when channelId is already known from streams_live.
+  - id: profile_by_nickname
+    method: GET
+    url: https://profiles-service.w.tv/api/v1/profiles/by-nickname/{slug}
+    params:
+      path:  { slug: channel slug from URL }
+      query: { user_lang: en }
+    auth: none
+    response:
+      profile:
+        userId:   string   # this IS the channelId
+        nickname: string
+        nicknameColor: string  # hex without #
+
+  # PRIMARY channel page call — bundles channel info + current live stream.
+  # Contains the same playbackUrl as streams_live but also stream_meta fields.
+  - id: channel_detail
+    method: GET
+    url: https://streams-search-service.w.tv/api/v1/channels/{channelId}
+    params:
+      path:  { channelId: userId from profile lookup }
+      query: { user_lang: en }
+    auth: none
+    response:
+      channel:
+        channelId:   string
+        name:        string
+        followers:   number
+        live:        boolean
+        liveStreamId: string
+        verified:    boolean
+        liveStream:            # present when live == true
+          streamId:    string  # → spec field: streamId
+          title:       string  # → spec field: title
+          state:       started
+          startedAt:   string  # ISO-8601 → spec field: startedAt
+          playbackUrl: string  # → spec field: manifestUrl (feed directly to Media3)
+          viewers:     number  # → spec field: viewerCount
+          bitrate:     number
+
+  # Viewer-count join — POST this after starting playback.
+  # 204 No Content. Not playback-blocking; fire-and-forget.
+  - id: stream_join
+    method: POST
+    url: https://streams-service.w.tv/api/v1/streams/{streamId}/join
+    params:
+      path:  { streamId: liveStream.streamId }
+      query: { user_lang: en }
+      body:  {}
+    auth: none
+    response: 204   # no body
+
+# ── HLS manifest ──────────────────────────────────────────────────────────────
+
+manifest:
+  # playbackUrl from any stream object is the IVS master playlist.
+  # Confirmed open CDN: HTTP 200 with no auth header or cookie.
+  url_pattern: >
+    https://{channel-arn-prefix}.eu-central-1.playback.live-video.net
+    /api/video/v1/eu-central-1.{account-id}.channel.{channel-key}.m3u8
+  example: >
+    https://ab2262fdd9c5.eu-central-1.playback.live-video.net/api/video/v1/
+    eu-central-1.061051251131.channel.qUc9R3Lv9TJC.m3u8
+  auth: none
+  renditions:
+    - name: 1080p60   bandwidth: 5708894   resolution: 1920x1080   fps: 60
+    - name: 720p60    bandwidth: 3422999   resolution: 1280x720    fps: 60
+    - name: 480p30    bandwidth: 1427999   resolution: 852x480     fps: 30
+    - name: 360p30    bandwidth: 630000    resolution: 640x360     fps: 30
+    - name: 160p30    bandwidth: 230000    resolution: 284x160     fps: 30
+  notes: |
+    Rendition playlist URLs inside the master are pre-signed by IVS and
+    served from {prefix}.use{N}.playlist.live-video.net. Media3 HlsMediaSource
+    follows them automatically — no app-level signing logic needed.
+
+# ── Spec expects coverage ─────────────────────────────────────────────────────
+
+coverage:
+  playback.manifestUrl:   confirmed — liveStream.playbackUrl (direct, no token call)
+  playback.channelId:     confirmed — channel.channelId
+  playback.streamId:      confirmed — liveStream.streamId
+  playback.accessToken:   NOT PRESENT — spec model was wrong; field does not exist
+  playback.signature:     NOT PRESENT — spec model was wrong; field does not exist
+  playback.expiresAt:     NOT PRESENT — spec model was wrong; field does not exist
+  stream_meta.title:      confirmed — liveStream.title (may be empty string)
+  stream_meta.viewerCount: confirmed — liveStream.viewers
+  stream_meta.startedAt:  confirmed — liveStream.startedAt (ISO-8601)
+  stream_meta.categoryName: confirmed — stream.subcategory.name (nullable; absent
+                            when channel has no category set)
+
+# ── Minimal chain ─────────────────────────────────────────────────────────────
+
+minimal_chain: |
+  For the TV app coming from the navigation grid:
+
+  1. GET /api/v1/streams/live?limit=50&sort=score&user_lang=en
+     → streams[i].playbackUrl       (= manifestUrl, feed to Media3)
+     → streams[i].channel.channelId (= chatId for chat_join_token)
+     → streams[i].streamId          (for stream_join)
+     → streams[i].title, .viewers, .startedAt, .subcategory.name
+
+  2. Feed playbackUrl to Media3 HlsMediaSource — no further token call.
+
+  3. POST /chats/{channelId}/join → IVS chat token (see load_live_chat contract)
+
+  4. POST /streams/{streamId}/join → viewer-count join (fire-and-forget, 204)
+
+  If navigating by slug instead of from the grid:
+  1a. GET /profiles/by-nickname/{slug} → userId (= channelId)
+  1b. GET /channels/{channelId}        → liveStream.playbackUrl + stream_meta
+  Then continue from step 2.
+
+# ── Open questions ────────────────────────────────────────────────────────────
+
+open_questions:
+  - id: manifest_ttl
+    question: |
+      Does the playbackUrl expire? The master manifest returned 200 bare-curl
+      with no session. Need to check if it stops responding after the stream
+      ends or after a long idle period.
+    status: unconfirmed
+
+  - id: categoryName_null_handling
+    question: |
+      streams.subcategory is absent (not null) when no category is set.
+      Confirm the Android client must null-check rather than expect an empty object.
+    status: unconfirmed — treat as nullable in the ViewModel

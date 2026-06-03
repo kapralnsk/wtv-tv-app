@@ -1,0 +1,104 @@
+feature: load_live_chat
+captured: 2026-06-01
+
+# ── REST endpoints ────────────────────────────────────────────────────────────
+
+endpoints:
+
+  - id: chat_room_meta
+    method: GET
+    url: https://chats-service.w.tv/api/v1/chats/{chatId}
+    params:
+      path:  { chatId: channelId }   # channelId == userId from profile lookup
+      query: { user_lang: en }
+    auth: none
+    response:
+      chat:
+        chatId: string
+        rules:
+          messages: array
+          senders:  array
+
+  - id: chat_join_token
+    method: POST
+    url: https://chats-service.w.tv/api/v1/chats/{chatId}/join
+    params:
+      path:  { chatId: channelId }
+      query: { user_lang: en }
+      body:  {}
+    auth: none   # browser UA + Origin header required; no session cookie needed
+    response:
+      token: string   # ⚠ short-lived AWS IVS KMS token — do-not-cache
+      tags:  array
+    notes: |
+      Call once per stream session before opening the WebSocket.
+      Repeat on WS reconnect — the token expires.
+
+  - id: chat_backlog
+    method: GET
+    url: https://chats-service.w.tv/api/v1/chats/{chatId}/messages
+    params:
+      path:  { chatId: channelId }
+      query: { user_lang: en }
+    auth: none
+    response:
+      messages:
+        - messageId: string   # ULID — monotonically increasing, encodes timestamp
+          type:      MESSAGE
+          content:   string   # body text; emote names are inline as  :emoteName:
+          sender:
+            userId:   string
+            nickname: string
+            tags:     array   # badge source — always [] in captures, structure unconfirmed
+
+# ── WebSocket ─────────────────────────────────────────────────────────────────
+
+websocket:
+  url: wss://edge.ivschat.eu-central-1.amazonaws.com/
+
+  auth:
+    mechanism: Sec-WebSocket-Protocol header
+    value: token from chat_join_token
+    notes: |
+      The IVS token is the entire Sec-WebSocket-Protocol value sent during the
+      HTTP upgrade handshake. No post-connect join frame is required — the room
+      is encoded in the token itself. Server echoes the token back in its 101
+      response header.
+
+  join_frame: none
+
+  # Message frame schema is inferred from the REST backlog (same service).
+  # Live WS frames were not captured (channel was quiet during session).
+  # Fields marked [unconfirmed] need a follow-up capture on an active channel.
+  message_frame:
+    messageId: string          # ULID
+    type:      MESSAGE
+    content:   string          # body; emotes inline as :name:
+    sender:
+      userId:   string         # → spec field: author
+      nickname: string         # → spec field: displayName
+      tags:     array          # → spec field: badges (structure unconfirmed)
+    sendTime:  string          # [unconfirmed] ISO-8601 timestamp
+    attributes: object         # [unconfirmed] may carry color, emote metadata
+
+# ── Spec expects coverage ─────────────────────────────────────────────────────
+
+coverage:
+  websocket.wsUrl:                    confirmed
+  websocket.joinFrame:                confirmed — none required
+  websocket.messageFrame.author:      inferred (sender.userId from backlog)
+  websocket.messageFrame.displayName: inferred (sender.nickname from backlog)
+  websocket.messageFrame.body:        inferred (content from backlog)
+  websocket.messageFrame.timestamp:   unconfirmed
+  websocket.messageFrame.badges:      unconfirmed (tags always [] in captures)
+  websocket.messageFrame.color:       unconfirmed
+  websocket.messageFrame.emotes:      unconfirmed (appear inline in content, not separate)
+  rest_backlog.roomId:                confirmed (chatId == channelId)
+  rest_backlog.recentMessages:        confirmed (chat_backlog endpoint)
+
+# ── Open question resolution ──────────────────────────────────────────────────
+
+auth_for_readonly: |
+  Yes — the WS handshake requires the IVS token as Sec-WebSocket-Protocol.
+  However, the token itself is obtained via an unauthenticated POST /join,
+  so no user login is needed for read-only chat access.
