@@ -42,7 +42,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
+import tv.wtv.app.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.C
@@ -52,7 +54,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonDefaults
@@ -183,15 +184,13 @@ fun PlayerScreen(
                 Row(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier = Modifier
-                            .weight(if (state.isChatVisible) 0.7f else 1f)
+                            .weight(if (state.isChatVisible) 0.75f else 1f)
                             .fillMaxHeight()
                     ) {
                         AndroidView(
                             factory = { ctx ->
-                                PlayerView(ctx).apply {
+                                (LayoutInflater.from(ctx).inflate(R.layout.player_view, null) as PlayerView).apply {
                                     this.player = player
-                                    useController = false
-                                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                                 }
                             },
                             modifier = Modifier.fillMaxSize(),
@@ -223,7 +222,7 @@ fun PlayerScreen(
                         ChatPanel(
                             messages = state.chatMessages,
                             modifier = Modifier
-                                .weight(0.3f)
+                                .weight(0.25f)
                                 .fillMaxHeight(),
                         )
                     }
