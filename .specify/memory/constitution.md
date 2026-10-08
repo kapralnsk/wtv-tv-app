@@ -33,14 +33,23 @@ statement per feature.
 
 ### II. Shared Web Core, Thin Platform Shells
 
-All UI, navigation, and domain logic MUST live in a single shared TypeScript web application.
-Platform packages are shells only.
+All UI, navigation, domain logic, and API and chat protocol handling MUST live in a single
+shared TypeScript web application. Platform packages are shells only.
 
-- A platform shell MUST contain nothing but packaging, host permissions, lifecycle glue, and
-  launch of the shared app. Business logic in a shell is a constitutional violation.
+- A platform shell MUST contain nothing but packaging, host permissions, lifecycle glue, launch
+  of the shared app, input forwarding (Back, media keys), and a native playback backend.
+  Business logic in a shell is a constitutional violation.
+- A native playback backend executes playback mechanics only: decoding, the video surface,
+  buffering, and track switching. All playback policy stays in the shared core: quality
+  selection, retry and recovery, live-edge behavior, mapping errors to UI, and all UI. Player
+  configuration originates in the core.
 - Platform-specific behavior in the shared core MUST be reached only through a named adapter
-  with one interface and one implementation per platform (for example, the video player:
-  Tizen AVPlay vs. HLS-in-browser). Scattered platform conditionals are forbidden.
+  with one interface and one implementation per platform, however many languages that
+  implementation spans (for example, the video player: Tizen AVPlay vs. Media3 on Android).
+  Scattered platform conditionals are forbidden.
+- Video renders beneath the web UI and is controlled through asynchronous commands and events.
+  Feature code MUST NOT assume a DOM `<video>` element.
+- Fakes and development backends (such as browser HLS) are allowed and are not targets.
 - Adding a platform MUST mean adding a shell and adapter implementations, never forking the core.
 - App lifecycle events (hide, suspend, resume) are forwarded by the shell. The response is policy
   in the shared core. On hide or suspend: pause playback and stop or throttle chat and polling.
@@ -48,7 +57,9 @@ Platform packages are shells only.
 
 Rationale: two hand-written native clients double every feature's cost and guarantee drift.
 A shared core keeps the single supervising developer reviewing one implementation of each
-behavior.
+behavior. Native playback, following SmartTwitchTV's Android architecture, gives Android the
+platform decoder without moving policy out of the core: the backend only executes what the
+core decides.
 
 ### III. Android Is Reference, Tizen May Degrade Explicitly
 
@@ -111,8 +122,6 @@ high-throughput chat.
   constitution check.
 - Tizen budgets are optional. A missing or looser Tizen budget is a declared reduction under
   Principle III, and Tizen performance never constrains Android.
-- Budgets that require real hardware are verified by the supervisor and MUST NOT be reported as
-  met on inference.
 - Budgets measurable in an automated harness MUST be tested under Principle VI. Budgets that
   require real hardware are verified by the supervisor and MUST NOT be reported as met on
   inference.
@@ -123,8 +132,8 @@ chat is an unbounded inbound stream.
 
 ### VI. Test-Backed Logic
 
-Non-trivial logic MUST ship with automated tests that run without a TV, an emulator, or a
-network.
+Non-trivial logic, in TypeScript or Kotlin, MUST ship with automated tests that run without a
+TV, an emulator, or a network.
 
 - Every state container, protocol parser, and data-transformation module MUST have a test file.
 - Protocol and API handling MUST be tested against captured real payloads, scrubbed per
@@ -175,27 +184,24 @@ guesses. Requiring observation evidence makes guesses visible and keeps drift de
 ## Technology & Platform Constraints
 
 - **Product**: w.tv — a live streaming platform client (Twitch-like) for television.
-- **Shared core**: TypeScript, bundled as a static web application. It is the single home for
-  UI, navigation, state, and API and chat protocol handling.
 - **Targets (exhaustive)**: Chromecast with Google TV (Android 12+) and Samsung Tizen 5.5+ (2020
   models). The app is locked to these two; phone, tablet, and desktop are not supported targets
   and MUST NOT shape design decisions.
+- **Packaging**: the shared core is TypeScript bundled as a static web application. Android: an
+  APK with a transparent full-screen WebView over a Media3 video surface. Tizen: a packaged
+  Tizen web application (`.wgt`) using AVPlay.
 - **Engine baseline**: the shared core MUST build for the web engine of the minimum supported
   Tizen version. JavaScript is compiled down to that engine. CSS features and Web APIs it lacks
   are either avoided or placed behind capability checks with a declared reduction. The concrete
   engine version and build target live in `AGENTS.md`.
-- **Android shell**: a full-screen WebView host. It MUST hold no application logic.
-- **Tizen shell**: a packaged Tizen web application (`.wgt`). It MUST hold no application logic.
-- **Video**: delivered through the player adapter of Principle II — Tizen's native AVPlay on
-  Tizen, browser-based HLS playback elsewhere.
-- **Retired stack**: the native Kotlin/Compose/Media3 implementation is decommissioned. No new
-  Kotlin application logic may be added; the Android shell is the only permitted native code.
+- **Retired stack**: the Compose UI and the previous Kotlin app stay retired. New Kotlin is
+  limited to the shell scope of Principle II.
 - **Dependencies**: each third-party dependency MUST be justified against TV runtime cost, bundle
   size, and Tizen compatibility. Prefer no dependency over a convenient one. The app stays lean.
-- **Secrets**: no credentials or private tokens in the repository. Observed protocol details
-  derived from captured traffic belong in documentation, not in committed captures of personal
-  session data. At runtime, auth tokens MUST never be logged, placed in URLs, or included in
-  error reports.
+  Media3 is used as published; forking it requires an amendment.
+- **Secrets**: no credentials or private tokens in the repository. At runtime, auth tokens MUST
+  never be logged, placed in URLs, or included in error reports. (Capture handling is governed
+  by Principle VIII.)
 
 ## Development Workflow & Quality Gates
 
@@ -258,4 +264,4 @@ re-specifying — never as an acceptable exception.
 commands, code style) and MUST remain consistent with this constitution. On conflict, this
 constitution governs and `AGENTS.md` is corrected.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-05 | **Last Amended**: 2026-10-07
+**Version**: 3.0.0 | **Ratified**: 2026-10-05 | **Last Amended**: 2026-10-08
