@@ -54,6 +54,9 @@ sessions and is never a source of requirements; only specs are. Every spec inclu
 New feature: `/speckit-specify` → `/speckit-clarify` (if underspecified) → `/speckit-plan` →
 `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`.
 
+Spec directories map to user-facing capabilities (live viewing, VOD viewing, chat, browse), not
+to phases or components.
+
 Existing feature (constitution Principle I):
 
 - **Behavior change:** edit its `spec.md` with the supervisor, then re-run `/speckit-plan` and
@@ -62,6 +65,9 @@ Existing feature (constitution Principle I):
 - **Restoring specified behavior:** no spec change. Cite the requirement and add a regression
   test.
 - **Behavior change discovered mid-implementation:** stop and ask the supervisor.
+
+Component knowledge relied on beyond one feature is promoted from its plan to
+`docs/architecture/`.
 
 ### Pull requests
 
