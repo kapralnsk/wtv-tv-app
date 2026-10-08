@@ -10,7 +10,8 @@ relax principles, and it is never a source of product requirements; only specs a
 ## Layout
 
 - `web/`: the shared TypeScript application. All feature work happens here.
-- `app/`: Android shell (full-screen WebView host). Its current Kotlin sources are retired; see
+- `app/`: Android shell. A transparent full-screen WebView over a Media3 video surface, hosting
+  the Kotlin side of the native playback backend. Its current Kotlin sources are retired; see
   below.
 - `tizen-app/`: Tizen shell (`config.xml` and packaging into `.wgt`).
 
@@ -21,7 +22,9 @@ Principles II and III and are not repeated here.
 
 - `app/src/main/java/` holds the retired Kotlin/Compose/Media3 app. Until phase 1's cleanup
   lands, everything there is retired, and none of it is the live shell. Do not extend it or port
-  from it (constitution Principle I).
+  from it (constitution Principle I). This includes its Media3 code: it is reference only, and
+  the new playback backend is re-specified, not ported.
+- New Kotlin is allowed, but only within the shell scope of constitution Principle II.
 - The `web-app-port` branch is a mechanical port of the retired app. It is not a starting point.
 - `web/dist/` is an empty leftover.
 
@@ -32,7 +35,13 @@ Phase 1 cleanup tags the retired code as `retired-native`, deletes it and `web/d
 ## Commands
 
 None yet: the project is in SDD setup. Do not invent build, test, lint, or packaging commands.
-They are added here when phase 1 establishes them.
+They are added here when phase 1 establishes them, for both the web core and the Android Gradle
+build (including the JVM unit test command).
+
+## Player bridge
+
+The mechanism connecting the TypeScript bridge client to the Kotlin backend is not chosen yet.
+The first player feature's plan chooses it in its research phase, and it is recorded here.
 
 ## Scope
 
@@ -166,6 +175,8 @@ raise the target to the new highest target that both support. Do not downgrade t
 
 - No narrating comments. Comment only when the _why_ is non-obvious from the code.
 - Formatter, linter, and TypeScript strictness are not chosen yet; they are added with phase 1.
+- Kotlin formatter, linter, and style conventions are not chosen yet; they are added with
+  phase 1.
 
 ## Communication
 
