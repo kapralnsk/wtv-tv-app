@@ -91,11 +91,15 @@ GitHub identities:
 
 ### Agent environment
 
-Agent sessions run in the dev container defined in `.devcontainer/`, once it exists (constitution,
-Agent environment).
+Agent sessions run in the dev container defined in `.devcontainer/` (constitution, Agent
+environment). Setup and launch are in `.devcontainer/README.md`.
 
 - Its only GitHub credential is the implementer's. Nothing from the host is mounted or forwarded
   except the workspace (no `~/.ssh`, `~/.config/gh`, `~/.gitconfig`, SSH agent, or Docker socket).
+- `.devcontainer/`, `.vscode/`, `.git/config` and `.git/hooks/` are read-only inside. Push with
+  `git push` (the container sets `push.default=current`); `git push -u` cannot record tracking.
+- `.devcontainer/check-isolation.sh` verifies the isolation. If it fails, stop and report the
+  failing checks to the supervisor.
 - Change `.devcontainer/` only when the supervisor asks.
 
 ### Observing w.tv
@@ -112,8 +116,9 @@ Before any observation work, check that the MCP works: open `https://w.tv/` with
   blocking automation. Name the failing step, quote the error, and state the exact action
   needed. Then stop observation work. Do not fall back to assumptions, other tools, or retired
   code.
-- If observation needs a logged-in session, ask the supervisor to log in to the MCP browser.
-  Never handle credentials.
+- The `playwright` server is headless and isolated, with no w.tv login. If observation needs a
+  logged-in session, stop and ask the supervisor to start a headed session (`playwright-headed`,
+  see `.devcontainer/README.md`) and log in. Never handle credentials.
 
 ### Agent review setup
 
