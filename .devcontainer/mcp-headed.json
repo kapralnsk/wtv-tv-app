@@ -1,14 +1,12 @@
 {
     "mcpServers": {
-        "playwright": {
+        "playwright-headed": {
             "command": "npx",
             "args": [
                 "-y",
                 "@playwright/mcp@0.0.83",
-                "--headless",
-                "--isolated",
                 "--browser=chromium",
-                "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+                "--user-data-dir=/home/node/.browser-profile",
                 "--caps=vision,devtools"
             ]
         }

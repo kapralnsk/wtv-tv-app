@@ -14,14 +14,8 @@ app/build
 # Kotlin compiler sessions
 .kotlin/
 
-# Node (capture-specs tooling)
-capture-specs/node_modules/
-
 # MCP / tool artifacts
 .playwright-mcp/
-mitm_mcp_traffic.db
-*.flows
-/flows/
 
 # Claude Code local settings
 .claude/settings.local.json

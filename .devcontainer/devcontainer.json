@@ -1,0 +1,47 @@
+{
+  "name": "wtv-google-tv agent",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "noPassword"
+    }
+  },
+  "containerUser": "root",
+  "remoteUser": "node",
+  "initializeCommand": "mkdir -p .vscode",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.vscode,target=/workspace/.vscode,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.git/config,target=/workspace/.git/config,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.git/hooks,target=/workspace/.git/hooks,type=bind,readonly",
+    "source=wtv-claude-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=wtv-gh-config-${devcontainerId},target=/home/node/.config/gh,type=volume",
+    "source=wtv-browser-profile-${devcontainerId},target=/home/node/.browser-profile,type=volume"
+  ],
+  "appPort": ["127.0.0.1:6080:6080"],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "GIT_CONFIG_GLOBAL": "/home/node/.config/git/config"
+  },
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "",
+    "GIT_ASKPASS": "",
+    "VSCODE_GIT_ASKPASS_MAIN": "",
+    "VSCODE_GIT_ASKPASS_NODE": "",
+    "VSCODE_GIT_IPC_HANDLE": ""
+  },
+  "postStartCommand": "/workspace/.devcontainer/setup-git.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code"],
+      "settings": {
+        "git.terminalAuthentication": false,
+        "github.gitAuthentication": false
+      }
+    }
+  }
+}
