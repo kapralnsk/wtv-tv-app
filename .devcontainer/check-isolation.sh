@@ -6,31 +6,48 @@ failures=0
 pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1"; failures=$((failures + 1)); }
 
-accounts=$(gh auth status 2>&1 | grep -c 'Logged in to github.com')
-if [ "$accounts" -eq 1 ]; then
-  pass "gh has one account: $(gh api user --jq .login 2>/dev/null)"
+if env -u GH_TOKEN -u GITHUB_TOKEN /usr/bin/gh auth status >/dev/null 2>&1; then
+  fail "gh has a stored login (run /usr/bin/gh auth logout)"
 else
-  fail "gh has $accounts accounts logged in to github.com (want 1)"
+  pass "gh has no stored login"
 fi
 
+if [ "$(command -v gh)" = /usr/local/bin/gh ]; then
+  pass "gh resolves to the app-token wrapper"
+else
+  fail "gh resolves to $(command -v gh), not /usr/local/bin/gh"
+fi
+
+if scope=$(wtv-app-token permissions 2>&1); then
+  want='{"permissions":{"contents":"write","metadata":"read","pull_requests":"write"},"repositories":["'"$(git -C /workspace remote get-url origin | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')"'"]}'
+  if [ "$(printf '%s' "$scope" | jq -cS .)" = "$(printf '%s' "$want" | jq -cS .)" ]; then
+    pass "app token is limited to contents and pull requests on one repository"
+  else
+    fail "app token scope differs from contents/pull_requests write on one repository: $scope"
+  fi
+else
+  fail "no app token: $scope"
+fi
+
+# The gh wrapper sets GH_TOKEN only for its own process, so a shell-wide token is a leak.
 if [ -n "${GH_TOKEN:-}${GITHUB_TOKEN:-}${GH_ENTERPRISE_TOKEN:-}" ]; then
   fail "a GitHub token is set in the environment"
 else
   pass "no GitHub token in the environment"
 fi
 
-helpers=$(git config --show-origin --get-regexp 'credential.*helper' | awk '$3 != ""' | grep -v '!gh auth git-credential')
+helpers=$(git config --show-origin --get-regexp 'credential.*helper' | awk '$3 != ""' | grep -v '!wtv-app-token git-credential')
 if [ -z "$helpers" ]; then
-  pass "gh is the only git credential helper"
+  pass "wtv-app-token is the only git credential helper"
 else
   fail "other git credential helpers are configured: $helpers"
 fi
 
 filled=$(printf 'protocol=https\nhost=github.com\n\n' | GIT_TERMINAL_PROMPT=0 git credential fill 2>/dev/null | sed -n 's/^password=//p')
-if [ -n "$filled" ] && [ "$filled" = "$(gh auth token 2>/dev/null)" ]; then
-  pass "git credential fill returns gh's token"
+if [ -n "$filled" ] && [ "$filled" = "$(wtv-app-token 2>/dev/null)" ]; then
+  pass "git credential fill returns the app token"
 else
-  fail "git credential fill does not return gh's token"
+  fail "git credential fill does not return the app token"
 fi
 
 if ls /tmp/vscode-remote-containers-*.js >/dev/null 2>&1 || [ -n "${REMOTE_CONTAINERS_IPC:-}" ]; then
@@ -39,11 +56,11 @@ else
   pass "no VS Code git credential helper"
 fi
 
-name=$(git config user.name)
-if [ -n "$name" ] && [ "$name" = "$(gh api user --jq .login 2>/dev/null)" ]; then
-  pass "git identity matches gh: $name <$(git config user.email)>"
+identity="$(git config user.name)	$(git config user.email)"
+if [ "$identity" = "$(wtv-app-token identity 2>/dev/null)" ]; then
+  pass "git identity is the app's bot: $(git config user.name) <$(git config user.email)>"
 else
-  fail "git identity '$name' does not match the gh account"
+  fail "git identity '$(git config user.name)' is not the app's bot"
 fi
 
 if [ -n "${SSH_AUTH_SOCK:-}" ] || ls /tmp/vscode-ssh-auth-*.sock >/dev/null 2>&1; then

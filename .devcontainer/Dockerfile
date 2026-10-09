@@ -9,16 +9,18 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
   && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
   && apt-get update \
-  && apt-get install -y --no-install-recommends gh git jq less procps python3 ripgrep sudo \
+  && apt-get install -y --no-install-recommends curl gh git jq less openssl procps python3 ripgrep sudo \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY managed-settings.json /etc/claude-code/managed-settings.json
+COPY --chmod=755 app-token.sh /usr/local/bin/wtv-app-token
+COPY --chmod=755 gh-wrapper.sh /usr/local/bin/gh
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN npx -y playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium \
   && chown -R node:node /ms-playwright
 
-RUN mkdir -p /home/node/.claude /home/node/.config/gh /home/node/.config/git /home/node/.browser-profile \
+RUN mkdir -p /home/node/.claude /home/node/.config/gh /home/node/.config/git /home/node/.config/wtv-app /home/node/.browser-profile \
   && chown -R node:node /home/node
 
 USER node

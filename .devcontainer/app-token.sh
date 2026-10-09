@@ -1,0 +1,97 @@
+#!/bin/sh
+# Mints installation tokens for the implementer GitHub App from its private key, so no GitHub
+# login is stored in the container. Tokens last an hour and are cached until 10 minutes before
+# they expire.
+#
+#   wtv-app-token                     print a token
+#   wtv-app-token git-credential get  git credential helper protocol
+#   wtv-app-token identity            print the bot's name and noreply email, tab-separated
+#   wtv-app-token permissions         print the cached token's permissions and repositories
+set -eu
+
+dir="$HOME/.config/wtv-app"
+key="$dir/private-key.pem"
+cache="$HOME/.cache/wtv-app/token.json"
+api=https://api.github.com
+
+die() { echo "wtv-app-token: $1" >&2; exit 1; }
+
+[ -r "$key" ] || die "no private key at $key (see .devcontainer/README.md)"
+[ -r "$dir/app-id" ] || die "no app ID at $dir/app-id (see .devcontainer/README.md)"
+app_id=$(tr -d '[:space:]' < "$dir/app-id")
+
+origin=$(git -C /workspace remote get-url origin)
+repo=$(printf '%s' "$origin" | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')
+repo_name=${repo#*/}
+
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+jwt() {
+  now=$(date +%s)
+  header=$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)
+  # iat is backdated against clock drift; GitHub caps exp at 10 minutes.
+  payload=$(printf '{"iat":%s,"exp":%s,"iss":"%s"}' $((now - 60)) $((now + 540)) "$app_id" | b64url)
+  signature=$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign "$key" | b64url)
+  printf '%s.%s.%s' "$header" "$payload" "$signature"
+}
+
+call() {
+  method=$1 path=$2 auth=$3
+  shift 3
+  curl -fsS -X "$method" "$api$path" \
+    -H "Authorization: Bearer $auth" \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'X-GitHub-Api-Version: 2022-11-28' "$@"
+}
+
+fresh() {
+  [ -s "$cache" ] || return 1
+  expires=$(date -d "$(jq -r .expires_at "$cache")" +%s) || return 1
+  [ $((expires - $(date +%s))) -gt 600 ]
+}
+
+mint() {
+  token_jwt=$(jwt)
+  response=$(call GET "/repos/$repo/installation" "$token_jwt") \
+    || die "the app is not installed on $repo, or the app ID or key is wrong"
+  installation=$(printf '%s' "$response" | jq -r .id)
+  # Narrowed at mint time, so a broader app registration still yields only these permissions.
+  body=$(jq -nc --arg r "$repo_name" \
+    '{repositories: [$r], permissions: {contents: "write", pull_requests: "write", metadata: "read"}}')
+  mkdir -p "$(dirname "$cache")"
+  umask 077
+  call POST "/app/installations/$installation/access_tokens" "$token_jwt" -d "$body" > "$cache.tmp" \
+    || die "minting a token failed"
+  mv "$cache.tmp" "$cache"
+}
+
+token() {
+  fresh || mint
+  jq -r .token "$cache"
+}
+
+case "${1:-}" in
+  "")
+    token
+    ;;
+  git-credential)
+    [ "${2:-}" = get ] || exit 0
+    host=$(sed -n 's/^host=//p')
+    [ "$host" = github.com ] || exit 0
+    printf 'username=x-access-token\npassword=%s\n' "$(token)"
+    ;;
+  identity)
+    app=$(call GET /app "$(jwt)") || die "reading the app failed"
+    slug=$(printf '%s' "$app" | jq -r .slug)
+    bot=$(call GET "/users/$slug%5Bbot%5D" "$(token)") || die "reading the bot user failed"
+    id=$(printf '%s' "$bot" | jq -r .id)
+    printf '%s[bot]\t%s+%s[bot]@users.noreply.github.com\n' "$slug" "$id" "$slug"
+    ;;
+  permissions)
+    token > /dev/null
+    jq -c '{permissions, repositories: [.repositories[].full_name]}' "$cache"
+    ;;
+  *)
+    die "unknown command: $1"
+    ;;
+esac

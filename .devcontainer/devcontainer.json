@@ -19,7 +19,7 @@
     "source=${localWorkspaceFolder}/.git/config,target=/workspace/.git/config,type=bind,readonly",
     "source=${localWorkspaceFolder}/.git/hooks,target=/workspace/.git/hooks,type=bind,readonly",
     "source=wtv-claude-config-${devcontainerId},target=/home/node/.claude,type=volume",
-    "source=wtv-gh-config-${devcontainerId},target=/home/node/.config/gh,type=volume",
+    "source=wtv-app-key-${devcontainerId},target=/home/node/.config/wtv-app,type=volume",
     "source=wtv-browser-profile-${devcontainerId},target=/home/node/.browser-profile,type=volume"
   ],
   "appPort": ["127.0.0.1:6080:6080"],

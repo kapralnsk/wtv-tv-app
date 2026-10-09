@@ -1,6 +1,6 @@
 #!/bin/sh
 # Rewrites the container's global git config on every start, so nothing an editor copied in
-# survives. The commit identity follows whichever account gh is logged in as.
+# survives. git authenticates and commits as the implementer GitHub App's bot.
 set -eu
 
 config="$GIT_CONFIG_GLOBAL"
@@ -13,14 +13,14 @@ git config --global push.default current
 # The empty helper clears any helper set earlier, including system ones.
 git config --global credential.helper ''
 git config --global --add 'credential.https://github.com.helper' ''
-git config --global --add 'credential.https://github.com.helper' '!gh auth git-credential'
+git config --global --add 'credential.https://github.com.helper' '!wtv-app-token git-credential'
 
-if user=$(gh api user --jq '[.id, .login] | @tsv' 2>/dev/null); then
-  id=$(printf '%s' "$user" | cut -f1)
-  login=$(printf '%s' "$user" | cut -f2)
-  git config --global user.name "$login"
-  git config --global user.email "$id+$login@users.noreply.github.com"
-  echo "git identity: $login"
+if identity=$(wtv-app-token identity); then
+  name=$(printf '%s' "$identity" | cut -f1)
+  email=$(printf '%s' "$identity" | cut -f2)
+  git config --global user.name "$name"
+  git config --global user.email "$email"
+  echo "git identity: $name <$email>"
 else
-  echo "gh is not logged in. Run gh auth login, then $0"
+  echo "The implementer app is not set up. See .devcontainer/README.md, then run $0"
 fi

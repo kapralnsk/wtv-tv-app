@@ -1,12 +1,17 @@
 # Agent dev container
 
-Agent sessions run here so that the only GitHub credential they can reach is the one logged in
-to `gh` inside the container (constitution, Agent environment). Only the supervisor changes this
+Agent sessions run here so that the only GitHub credential they can reach is the implementer
+GitHub App's private key, which mints short-lived tokens for this repository (constitution, Agent
+environment). Only the supervisor changes this
 directory, and reviews any diff to it before rebuilding.
 
 ## What is inside
 
 - Node 24 LTS, `gh`, `git`, Python 3 (spec-kit), ripgrep, Claude Code (native installer: latest, auto-updating).
+- `wtv-app-token`, which mints the app's installation tokens, and a `gh` wrapper at
+  `/usr/local/bin/gh` that runs each call with a fresh token. git uses `wtv-app-token` as its only
+  credential helper. Tokens are narrowed to contents and pull requests on this repository and
+  expire within an hour; no login is stored.
 - Playwright MCP pinned in `.mcp.json`, with its Chromium build preinstalled.
 - A virtual desktop (desktop-lite) with noVNC on `127.0.0.1:6080`, used only by headed sessions.
 - Managed settings (`managed-settings.json`, installed at `/etc/claude-code/`): sessions start in
@@ -24,8 +29,25 @@ Named volumes, per workspace, keep state across rebuilds:
 | Volume                         | Mounted at                  | Holds                           |
 | ------------------------------ | --------------------------- | ------------------------------- |
 | `wtv-claude-config-<id>`       | `/home/node/.claude`        | Claude Code login and settings  |
-| `wtv-gh-config-<id>`           | `/home/node/.config/gh`     | The `gh` token                  |
+| `wtv-app-key-<id>`             | `/home/node/.config/wtv-app` | The app's private key and ID   |
 | `wtv-browser-profile-<id>`     | `/home/node/.browser-profile` | The headed browser's profile  |
+
+## GitHub setup (once)
+
+The agent acts as a GitHub App's bot, so its pushes, pull requests and comments are distinct from
+the supervisor's, and the supervisor can approve them.
+
+1. Register a GitHub App under the supervisor's account (Settings → Developer settings → GitHub
+   Apps). Installable only on this account; webhook inactive. Repository permissions: Contents
+   read and write, Pull requests read and write, Metadata read. Leave Workflows and
+   Administration at no access, so the bot can neither push workflow files nor change settings.
+2. Install it on this repository only, and generate a private key.
+3. Ruleset on `main`: require a pull request with 1 approval, dismiss stale approvals, require
+   approval of the most recent push, require conversation resolution, block force pushes and
+   deletion; the supervisor bypasses for pull requests only. To keep merging with the supervisor
+   even after approval, also restrict updates, with only the repository admin as bypass actor.
+4. Repository settings → Actions: workflow permissions read-only, and GitHub Actions not allowed
+   to create or approve pull requests. Keep secrets in an environment that only `main` can use.
 
 ## Host setup (once)
 
@@ -62,14 +84,20 @@ Both use the same container definition and volumes.
 
 Run these in the container. None of them needs the agent.
 
-1. `gh auth login`, as the account the agent should act as. The commit identity follows it.
-2. `.devcontainer/setup-git.sh` to apply that identity. It also runs on every container start.
+1. Put the app's ID and private key into the key volume:
+   - `printf '%s\n' <app-id> > ~/.config/wtv-app/app-id`
+   - `install -m 600 /dev/stdin ~/.config/wtv-app/private-key.pem`, then paste the key and press
+     Ctrl-D.
+
+   Keep the original key somewhere safe, such as a password manager, and delete the downloaded
+   file.
+2. `.devcontainer/setup-git.sh` to apply the bot's commit identity. It also runs on every
+   container start.
 3. `claude`, then `/login`.
 4. `.devcontainer/check-isolation.sh`. Every check must pass before handing the container to an
-   agent; run it again after changing VS Code settings or switching `gh` accounts.
+   agent; run it again after changing VS Code settings.
 
-To switch `gh` accounts (for example to the machine account), `gh auth logout`, then repeat
-steps 1, 2 and 4.
+To revoke the agent's access, delete the key in the app's settings, or uninstall the app.
 
 ## Logged-in browsing
 
@@ -97,6 +125,9 @@ one browser can use the profile at a time. To log out for good, remove the
   configurations. Run agent sessions only in the container, and review workspace changes before
   running anything from them on the host.
 - **The Claude Code login.** It is inside the container, readable by the agent.
+- **The app's private key.** Also inside and readable. Whoever holds it can mint tokens with the
+  app's permissions on its installations: this repository only, without workflows or
+  administration.
 - **Egress.** Unrestricted. Revisit with a hostname allowlist proxy if sessions ever run
   unattended with permissions bypassed.
 - **Build toolchains.** Added in phase 1.
