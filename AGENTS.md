@@ -73,11 +73,11 @@ Component knowledge relied on beyond one feature is promoted from its plan to
 
 GitHub identities:
 
-| Role        | Login                                    |
-| ----------- | ---------------------------------------- |
-| Implementer | `<app-slug>[bot]` (the supervisor's app) |
-| Reviewer    | `claude[bot]`                            |
-| Supervisor  | `kapralnsk`                              |
+| Role        | Login                                            |
+| ----------- | ------------------------------------------------ |
+| Implementer | `mechakapral[bot]` (the supervisor's GitHub App) |
+| Reviewer    | `claude[bot]`                                    |
+| Supervisor  | `kapralnsk`                                      |
 
 - Use `gh` and `git` only as the implementer. Never use the supervisor's credentials.
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
