@@ -1,11 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.compose.compiler)
-}
-
-kotlin {
-    jvmToolchain(26)
 }
 
 android {
@@ -28,52 +22,34 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
+        sourceCompatibility = JavaVersion.VERSION_24
+        targetCompatibility = JavaVersion.VERSION_24
     }
 
-
-    buildFeatures {
-        compose = true
-    }
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
-    }
+// Build the web app and copy output into Android assets before compilation.
+val buildWebApp by tasks.registering(Exec::class) {
+    workingDir = rootProject.file("web")
+    commandLine("npm", "run", "build")
+    inputs.dir(rootProject.file("web/src"))
+    inputs.file(rootProject.file("web/index.html"))
+    inputs.file(rootProject.file("web/app.css"))
+    inputs.file(rootProject.file("web/package.json"))
+    outputs.dir(rootProject.file("web/dist"))
+}
+
+val copyWebAssets by tasks.registering(Copy::class) {
+    dependsOn(buildWebApp)
+    from(rootProject.file("web/dist"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyWebAssets)
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.activity.compose)
-
-    val composeBom = platform(libs.compose.bom)
-    implementation(composeBom)
-    implementation(libs.compose.ui)
-    implementation(libs.compose.ui.tooling.preview)
-    debugImplementation(libs.compose.ui.tooling)
-
-    implementation(libs.tv.foundation)
-    implementation(libs.tv.material)
-
-    implementation(libs.navigation.compose)
-    implementation(libs.lifecycle.viewmodel.compose)
-    implementation(libs.lifecycle.runtime.compose)
-
-    implementation(libs.retrofit.core)
-    implementation(libs.retrofit.kotlinx.serialization)
-    implementation(libs.okhttp.logging)
-    implementation(libs.kotlinx.serialization.json)
-
-    implementation(libs.coil.compose)
-    implementation(libs.coroutines.android)
-
-    implementation(libs.media3.exoplayer)
-    implementation(libs.media3.hls)
-    implementation(libs.media3.ui)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.coroutines.test)
 }

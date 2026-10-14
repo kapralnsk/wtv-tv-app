@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>w.tv</title>
+  <script type="module" crossorigin src="./assets/index-BdWHrPpd.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CkDb9vg5.css">
+</head>
+<body>
+  <div id="status-overlay">
+    <p id="status-text">Loading…</p>
+  </div>
+
+  <div id="app" hidden>
+    <div id="video-container">
+      <video id="video" playsinline></video>
+      <object id="avplay" type="application/avplayer"></object>
+      <div id="stream-info-bar" hidden></div>
+      <div id="quality-picker" hidden></div>
+    </div>
+    <aside id="chat-panel">
+      <ul id="chat-messages"></ul>
+    </aside>
+  </div>
+
+  <!-- Tizen platform scripts — silently ignored on non-Tizen -->
+  <script src="$WEBAPIS/webapis/webapis.js" onerror="void 0"></script>
+</body>
+</html>
