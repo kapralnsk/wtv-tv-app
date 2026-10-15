@@ -57,26 +57,57 @@ the supervisor's, and the supervisor can approve them.
    symlink and a `config.json` of `{"auths":{"none.invalid":{}}}`, and set `DOCKER_HOST` to the
    OrbStack socket. The dummy entry matters: with no credentials configured at all, the
    devcontainer CLI falls back to `osxkeychain` on macOS.
-2. Nothing from the host is forwarded. For the VS Code path, set these in VS Code **user**
-   settings on the host, because they cannot be set from `devcontainer.json`:
+2. Two VS Code instances. GitHub sign-ins, and each extension's permission to use them, are
+   shared by every window of one instance, so the window that attaches to the container is a
+   separate instance:
+   - **Supervisor window:** the usual VS Code, with a "Supervisor" profile that holds only the
+     GitHub Pull Requests and GitHub Actions extensions, signed in. It never attaches to the agent
+     container.
+   - **Agent window:** opened only by `.devcontainer/agent-window.sh`, with its own user data and
+     extensions in `~/.vscode-agent-window`. It is never signed in to GitHub and Settings Sync
+     stays off. Its only local extension is Dev Containers; `devcontainer.json` installs Claude
+     Code in the container.
+
+   Settings that govern an attach go in the **user** settings of the instance that attaches;
+   `devcontainer.json` cannot set them. The script rewrites the agent window's user settings on
+   every launch:
 
    ```json
-   "dev.containers.copyGitConfig": false,
-   "dev.containers.gitCredentialHelperConfigLocation": "none",
-   "dev.containers.dockerCredentialHelper": false
+   {
+     "dev.containers.copyGitConfig": false,
+     "dev.containers.gitCredentialHelperConfigLocation": "none",
+     "dev.containers.dockerCredentialHelper": false,
+     "dev.containers.githubCLILoginWithToken": false,
+     "dev.containers.dockerPath": "/Users/<you>/.orbstack/bin/docker",
+     "remote.defaultExtensionsIfInstalledLocally": [],
+     "chat.disableAIFeatures": true
+   }
    ```
 
-   The container ignores `~/.gitconfig` and rewrites its own git config on every start, but VS
-   Code's credential helper talks to the host keychain directly, so only these settings close it.
-   `check-isolation.sh` reports whether they took effect.
+   VS Code's default for `remote.defaultExtensionsIfInstalledLocally` installs Copilot, Copilot
+   Chat and Pull Requests into every remote where they are installed locally. The Dev Containers
+   settings keep `~/.gitconfig`, the git and Docker credential helpers and a `gh` login out of the
+   container's config, but they do not close the channel behind them: the host answers git and
+   Docker credential requests from the container whatever they say, and forwards its SSH agent
+   whenever `SSH_AUTH_SOCK` is set. No setting turns either off. So the script also starts VS Code
+   with a minimal environment in which the host has nothing to answer with: an empty
+   `SSH_AUTH_SOCK` (when it is unset, macOS puts launchd's back), git ignoring the system and
+   global config with credential helpers cleared, and a `PATH` without
+   `docker-credential-osxkeychain` or Homebrew's `gpgconf` (hence the absolute `dockerPath`), with
+   `DOCKER_CONFIG` pointing at a dummy config as in step 1.
+3. The image has no `gpgconf` (the `no-gpg` feature removes it after desktop-lite installs it), so
+   VS Code finds no agent socket in the container and forwards no GPG agent.
 
 ## Launch
 
 From the repository root on the host, either:
 
 - **CLI:** `npx @devcontainers/cli up --workspace-folder .`, then
-  `npx @devcontainers/cli exec --workspace-folder . claude`.
-- **VS Code:** Dev Containers: Reopen in Container, then run `claude` in its terminal.
+  `npx @devcontainers/cli exec --workspace-folder . claude`. This path forwards nothing.
+- **VS Code:** `.devcontainer/agent-window.sh`, then in that window Dev Containers: Rebuild and
+  Reopen in Container on the first attach, and Reopen in Container afterwards. Run `claude` in its
+  terminal. Attach only from this window. A container that any other window attached to may hold
+  what that window copied or installed, so rebuild it from the agent window.
 
 Both use the same container definition and volumes.
 
@@ -94,8 +125,8 @@ Run these in the container. None of them needs the agent.
 2. `.devcontainer/setup-git.sh` to apply the bot's commit identity. It also runs on every
    container start.
 3. `claude`, then `/login`.
-4. `.devcontainer/check-isolation.sh`. Every check must pass before handing the container to an
-   agent; run it again after changing VS Code settings.
+4. `.devcontainer/check-isolation.sh`, in every path you launch through. Every check must pass
+   before handing the container to an agent; run it again after any change to the host setup.
 
 To revoke the agent's access, delete the key in the app's settings, or uninstall the app.
 
@@ -124,6 +155,14 @@ one browser can use the profile at a time. To log out for good, remove the
   session, build scripts such as `gradlew` and `package.json` scripts, and `.idea/` run
   configurations. Run agent sessions only in the container, and review workspace changes before
   running anything from them on the host.
+- **VS Code's host channel.** While the agent window is attached, its credential channel and VS
+  Code server are in the container, reachable from every session there, CLI ones included.
+  `check-isolation.sh` confirms each live channel belongs to a window opened by
+  `agent-window.sh`, by a marker the agent could forge, and cannot verify from inside that the
+  host answers nothing without using the channel. Processes in
+  the container all run as `node`, and OrbStack's `kernel.yama.ptrace_scope` is 0, so the agent
+  can inspect and alter the VS Code server and its extension host; the agent window keeps no
+  GitHub sign-in for them to hold.
 - **The Claude Code login.** It is inside the container, readable by the agent.
 - **The app's private key.** Also inside and readable. Whoever holds it can mint tokens with the
   app's permissions on its installations: this repository only, without workflows or

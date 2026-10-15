@@ -6,7 +6,8 @@
   "features": {
     "ghcr.io/devcontainers/features/desktop-lite:1": {
       "password": "noPassword"
-    }
+    },
+    "./no-gpg": {}
   },
   "containerUser": "root",
   "remoteUser": "node",
@@ -32,13 +33,15 @@
     "GIT_ASKPASS": "",
     "VSCODE_GIT_ASKPASS_MAIN": "",
     "VSCODE_GIT_ASKPASS_NODE": "",
-    "VSCODE_GIT_IPC_HANDLE": ""
+    "VSCODE_GIT_IPC_HANDLE": "",
+    "WTV_AGENT_WINDOW": "${localEnv:WTV_AGENT_WINDOW}"
   },
   "postStartCommand": "/workspace/.devcontainer/setup-git.sh",
   "customizations": {
     "vscode": {
       "extensions": ["anthropic.claude-code"],
       "settings": {
+        "chat.disableAIFeatures": true,
         "git.terminalAuthentication": false,
         "github.gitAuthentication": false
       }
