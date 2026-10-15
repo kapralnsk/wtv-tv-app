@@ -29,19 +29,22 @@ b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
 jwt() {
   now=$(date +%s)
   header=$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)
-  # iat is backdated against clock drift; GitHub caps exp at 10 minutes.
-  payload=$(printf '{"iat":%s,"exp":%s,"iss":"%s"}' $((now - 60)) $((now + 540)) "$app_id" | b64url)
+  # GitHub rejects an iat in its future and an exp more than 10 minutes past its clock. Centering
+  # the window on now tolerates a container clock up to 5 minutes off either way.
+  payload=$(printf '{"iat":%s,"exp":%s,"iss":"%s"}' $((now - 300)) $((now + 300)) "$app_id" | b64url)
   signature=$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign "$key" | b64url)
   printf '%s.%s.%s' "$header" "$payload" "$signature"
 }
 
+# On an HTTP error, GitHub's response goes to stderr, so the cause shows next to die's message.
 call() {
   method=$1 path=$2 auth=$3
   shift 3
-  curl -fsS -X "$method" "$api$path" \
+  out=$(curl -sS --fail-with-body -X "$method" "$api$path" \
     -H "Authorization: Bearer $auth" \
     -H 'Accept: application/vnd.github+json' \
-    -H 'X-GitHub-Api-Version: 2022-11-28' "$@"
+    -H 'X-GitHub-Api-Version: 2022-11-28' "$@") || { printf '%s\n' "$out" >&2; return 1; }
+  printf '%s' "$out"
 }
 
 fresh() {
@@ -53,7 +56,7 @@ fresh() {
 mint() {
   token_jwt=$(jwt)
   response=$(call GET "/repos/$repo/installation" "$token_jwt") \
-    || die "the app is not installed on $repo, or the app ID or key is wrong"
+    || die "looking up the app's installation on $repo failed"
   installation=$(printf '%s' "$response" | jq -r .id)
   # Narrowed at mint time, so a broader app registration still yields only these permissions.
   body=$(jq -nc --arg r "$repo_name" \
