@@ -59,12 +59,13 @@ fi
 # /tmp by a window that has gone serve nothing.
 live=0
 foreign=""
+hosts=$(pgrep -f -- '--type=extensionHost')
 for pid in $(pgrep -f '/tmp/vscode-remote-containers-server-'); do
   session=$(tr '\0' '\n' < "/proc/$pid/cmdline" 2>/dev/null | sed -n 's#^/tmp/vscode-remote-containers-server-\(.*\)\.js$#\1#p')
   [ -n "$session" ] || continue
   live=$((live + 1))
   owned=0
-  for host in $(pgrep -f -- '--type=extensionHost'); do
+  for host in $hosts; do
     if tr '\0' '\n' < "/proc/$host/environ" 2>/dev/null | grep -qx 'WTV_AGENT_WINDOW=1' \
       && tr '\0' '\n' < "/proc/$host/environ" 2>/dev/null | grep -qx "REMOTE_CONTAINERS_IPC=/tmp/vscode-remote-containers-ipc-$session.sock"; then
       owned=1
@@ -78,6 +79,16 @@ elif [ -z "$foreign" ]; then
   pass "VS Code's host credential channel is live only for windows opened by agent-window.sh"
 else
   fail "VS Code's host credential channel is live for a window not opened by agent-window.sh (session$foreign)"
+  [ -n "$hosts" ] || echo "      no extension host process found"
+  for host in $hosts; do
+    if [ -r "/proc/$host/environ" ]; then
+      ipc=$(tr '\0' '\n' < "/proc/$host/environ" | grep '^REMOTE_CONTAINERS_IPC=')
+      marker=$(tr '\0' '\n' < "/proc/$host/environ" | grep '^WTV_AGENT_WINDOW=')
+      echo "      extension host $host: ${ipc:-REMOTE_CONTAINERS_IPC <unset>} ${marker:-WTV_AGENT_WINDOW <unset>}"
+    else
+      echo "      extension host $host: environment not readable"
+    fi
+  done
 fi
 
 if [ -e "$HOME/.gitconfig" ]; then
