@@ -73,11 +73,11 @@ Component knowledge relied on beyond one feature is promoted from its plan to
 
 GitHub identities:
 
-| Role        | Login               |
-| ----------- | ------------------- |
-| Implementer | `<machine-account>` |
-| Reviewer    | `claude[bot]`       |
-| Supervisor  | `kapralnsk`         |
+| Role        | Login                                            |
+| ----------- | ------------------------------------------------ |
+| Implementer | `mechakapral[bot]` (the supervisor's GitHub App) |
+| Reviewer    | `claude[bot]`                                    |
+| Supervisor  | `kapralnsk`                                      |
 
 - Use `gh` and `git` only as the implementer. Never use the supervisor's credentials.
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
@@ -91,11 +91,20 @@ GitHub identities:
 
 ### Agent environment
 
-Agent sessions run in the dev container defined in `.devcontainer/`, once it exists (constitution,
-Agent environment).
+Agent sessions run in the dev container defined in `.devcontainer/` (constitution, Agent
+environment). Setup and launch are in `.devcontainer/README.md`.
 
-- Its only GitHub credential is the implementer's. Nothing from the host is mounted or forwarded
-  except the workspace (no `~/.ssh`, `~/.config/gh`, `~/.gitconfig`, SSH agent, or Docker socket).
+- Its only GitHub credential is the implementer's. Nothing from the host is mounted except the
+  workspace (no `~/.ssh`, `~/.config/gh`, `~/.gitconfig`, or Docker socket).
+- The devcontainers CLI path forwards nothing. A VS Code attach always opens a channel through
+  which the host answers git and Docker credential requests and forwards its SSH agent, so VS Code
+  attaches only from the agent window that `.devcontainer/agent-window.sh` opens, whose
+  environment leaves the host nothing to answer with.
+- `.devcontainer/`, `.vscode/`, `.git/config` and `.git/hooks/` are read-only inside. Push with
+  `git push` (the container sets `push.default=current`); `git push -u` cannot record tracking.
+- `.devcontainer/check-isolation.sh` verifies the isolation, and that the observation browser's
+  spoofed user agent matches its build. If it fails, stop and report the failing checks to the
+  supervisor.
 - Change `.devcontainer/` only when the supervisor asks.
 
 ### Observing w.tv
@@ -112,8 +121,9 @@ Before any observation work, check that the MCP works: open `https://w.tv/` with
   blocking automation. Name the failing step, quote the error, and state the exact action
   needed. Then stop observation work. Do not fall back to assumptions, other tools, or retired
   code.
-- If observation needs a logged-in session, ask the supervisor to log in to the MCP browser.
-  Never handle credentials.
+- The `playwright` server is headless and isolated, with no w.tv login. If observation needs a
+  logged-in session, stop and ask the supervisor to start a headed session (`playwright-headed`,
+  see `.devcontainer/README.md`) and log in. Never handle credentials.
 
 ### Agent review setup
 
