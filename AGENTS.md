@@ -94,8 +94,12 @@ GitHub identities:
 Agent sessions run in the dev container defined in `.devcontainer/` (constitution, Agent
 environment). Setup and launch are in `.devcontainer/README.md`.
 
-- Its only GitHub credential is the implementer's. Nothing from the host is mounted or forwarded
-  except the workspace (no `~/.ssh`, `~/.config/gh`, `~/.gitconfig`, SSH agent, or Docker socket).
+- Its only GitHub credential is the implementer's. Nothing from the host is mounted except the
+  workspace (no `~/.ssh`, `~/.config/gh`, `~/.gitconfig`, or Docker socket).
+- The devcontainers CLI path forwards nothing. A VS Code attach always opens a channel through
+  which the host answers git and Docker credential requests and forwards its SSH agent, so VS Code
+  attaches only from the agent window that `.devcontainer/agent-window.sh` opens, whose
+  environment leaves the host nothing to answer with.
 - `.devcontainer/`, `.vscode/`, `.git/config` and `.git/hooks/` are read-only inside. Push with
   `git push` (the container sets `push.default=current`); `git push -u` cannot record tracking.
 - `.devcontainer/check-isolation.sh` verifies the isolation. If it fails, stop and report the
