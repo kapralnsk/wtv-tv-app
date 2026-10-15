@@ -1,0 +1,85 @@
+name: Agent review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+    branches: [main]
+
+concurrency:
+  group: agent-review-${{ github.event.pull_request.number }}
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'kapralnsk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # Comments from anyone but these three are untrusted (constitution, Untrusted input), so
+      # they never reach the reviewer.
+      - name: Collect earlier reviews and comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          trusted='select(.user.login == "kapralnsk" or .user.login == "claude[bot]" or .user.login == "mechakapral[bot]")'
+          mkdir -p .review-context
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            --jq ".[] | $trusted | {user: .user.login, state, commit_id, body}" \
+            > .review-context/reviews.json
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/comments" \
+            --jq ".[] | $trusted | {id, in_reply_to_id, user: .user.login, path, line, original_line, commit_id, body}" \
+            > .review-context/inline-comments.json
+          gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq ".[] | $trusted | {user: .user.login, created_at, body}" \
+            > .review-context/comments.json
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the agent reviewer for pull request #${{ github.event.pull_request.number }}
+            in ${{ github.repository }}. Its head, ${{ github.event.pull_request.head.sha }}, is
+            checked out in the working directory with full history. Its base is origin/main.
+
+            Read these first:
+            1. `.specify/memory/constitution.md`
+            2. `AGENTS.md`
+            3. `REVIEW.md`, which decides what you report and how. Follow it exactly.
+            4. If the pull request belongs to a feature under `specs/`, that feature's `spec.md`,
+               `plan.md`, and `tasks.md`.
+
+            Then review the change with `gh pr view`, `gh pr diff`, and `git log`, `git diff`, and
+            `git show` against origin/main.
+
+            `.review-context/` holds this pull request's earlier reviews and comments from the
+            supervisor (kapralnsk), you (claude[bot]), and the implementer (mechakapral[bot]). If
+            it has a review summary from you, this is a re-review: follow the Re-reviews section of
+            REVIEW.md, and take "the changes since that review" from the commit named on that
+            summary's last line.
+
+            Post the review on the pull request:
+            - Put each finding about a line in the diff in its own inline comment, with
+              `mcp__github_inline_comment__create_inline_comment`. Put any other finding in the
+              summary.
+            - Post the summary with `gh pr comment`. Its last line is
+              `Reviewed at ${{ github.event.pull_request.head.sha }}.`
+          # The pull request controls the repository's Claude settings and .mcp.json. Loading
+          # them would run its hooks and MCP servers with the reviewer's credentials.
+          claude_args: >-
+            --model claude-opus-5-5
+            --effort high
+            --setting-sources user
+            --strict-mcp-config
+            --disallowedTools "Edit,Write,NotebookEdit"
+            --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*)"
