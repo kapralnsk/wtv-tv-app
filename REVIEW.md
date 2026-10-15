@@ -1,8 +1,9 @@
 # Review instructions
 
 How agent reviews of this repository decide what to report and who acts on each finding. This
-covers the pull request review by `claude[bot]` and local `/code-review` runs. The constitution's
-Agent review rules still apply. On conflict, the constitution wins and this file is corrected.
+covers the pull request review, posted as `github-actions[bot]`, and local `/code-review` runs. The
+constitution's Agent review rules still apply. On conflict, the constitution wins and this file is
+corrected.
 
 The supervisor's review time is the project's bottleneck (constitution Principle VII), and that
 includes the time spent reading reviews. A finding the supervisor has to read but nobody needs to

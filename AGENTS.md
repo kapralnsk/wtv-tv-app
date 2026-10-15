@@ -73,11 +73,11 @@ Component knowledge relied on beyond one feature is promoted from its plan to
 
 GitHub identities:
 
-| Role        | Login               |
-| ----------- | ------------------- |
-| Implementer | `<machine-account>` |
-| Reviewer    | `claude[bot]`       |
-| Supervisor  | `kapralnsk`         |
+| Role        | Login                 |
+| ----------- | --------------------- |
+| Implementer | `<machine-account>`   |
+| Reviewer    | `github-actions[bot]` |
+| Supervisor  | `kapralnsk`           |
 
 - Use `gh` and `git` only as the implementer. Never use the supervisor's credentials.
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
@@ -127,8 +127,10 @@ Before any observation work, check that the MCP works: open `https://w.tv/` with
 ### Agent review setup
 
 `.github/workflows/agent-review.yml` runs the agent review and is the source of truth for its
-trigger, skips, model, effort, and tools. It runs as `claude[bot]` through the Claude GitHub App,
-and needs the `CLAUDE_CODE_OAUTH_TOKEN` repository secret.
+trigger, skips, model, effort, and tools. The model gets read-only access and returns its
+findings, and a separate step posts them as `github-actions[bot]`. It needs the
+`CLAUDE_CODE_OAUTH_TOKEN` repository secret. The reviewer trusts comments from
+`github-actions[bot]`, so no other workflow may comment with the default token.
 
 - **Re-review**: on request only. The supervisor converts the pull request back to draft and
   marks it ready again. The implementer never does this to get another review.
