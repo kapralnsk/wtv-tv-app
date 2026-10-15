@@ -134,9 +134,12 @@ To revoke the agent's access, delete the key in the app's settings, or uninstall
 
 The default `playwright` server is headless and isolated: no profile survives the session, and
 nothing is logged in. w.tv's AWS WAF answers `HeadlessChrome` with 403s on its API hosts, so the
-server sends a regular Chrome user agent. Keep its major version in step with the Chromium that
-the pinned `@playwright/mcp` uses, and if the WAF starts blocking headless anyway, switch the
-default to headed and isolated rather than spoofing further. For features that need a w.tv login:
+server sends a regular Chrome user agent. Its major version must match the Chromium that the
+pinned `@playwright/mcp` launches, so update it whenever the pin changes; `check-isolation.sh`
+compares the two. The client hints (`Sec-CH-UA`, `navigator.userAgentData`) are not spoofed and
+report the real build; for Chromium 155 that is `Chromium` with no `HeadlessChrome` brand, which
+the WAF accepts. If the WAF starts blocking headless anyway, switch the default to headed and
+isolated rather than spoofing further. For features that need a w.tv login:
 
 1. Start the session with the headed server added:
    `claude --mcp-config .devcontainer/mcp-headed.json`.

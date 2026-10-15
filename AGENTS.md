@@ -102,8 +102,9 @@ environment). Setup and launch are in `.devcontainer/README.md`.
   environment leaves the host nothing to answer with.
 - `.devcontainer/`, `.vscode/`, `.git/config` and `.git/hooks/` are read-only inside. Push with
   `git push` (the container sets `push.default=current`); `git push -u` cannot record tracking.
-- `.devcontainer/check-isolation.sh` verifies the isolation. If it fails, stop and report the
-  failing checks to the supervisor.
+- `.devcontainer/check-isolation.sh` verifies the isolation, and that the observation browser's
+  spoofed user agent matches its build. If it fails, stop and report the failing checks to the
+  supervisor.
 - Change `.devcontainer/` only when the supervisor asks.
 
 ### Observing w.tv
