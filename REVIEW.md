@@ -41,8 +41,8 @@ All of these hold:
 Any one of these is enough:
 
 - The fix changes intended behavior or needs a `spec.md` edit (constitution Principle I).
-- The fix edits the constitution or a `spec.md`, or it edits AGENTS.md, this file, or
-  `.devcontainer/` in a pull request that does not already change them.
+- The fix edits a `spec.md`, or a path the implementer may not change: the constitution,
+  AGENTS.md, this file, `.claude/skills/`, `.github/workflows/`, or `.devcontainer/`.
 - The fix changes the supervisor's workflow, adds a dependency, or adds recurring cost.
 - More than one fix is reasonable. Give each with its trade-off, and say which you recommend.
 - Verifying the fix needs real hardware, a login, or a supervisor action.
