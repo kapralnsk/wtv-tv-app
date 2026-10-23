@@ -135,9 +135,12 @@ findings, and a separate step posts them as `github-actions[bot]`. It needs the
 `github-actions[bot]`, so no other workflow may comment with the default token.
 
 - **Re-review**: requested by converting the pull request back to draft and marking it ready again
-  (`gh pr ready --undo`, then `gh pr ready`). The implementer may request one re-review per pull
-  request, once it has fixed or answered every `[fix]` finding. After that, only the supervisor
-  requests re-reviews; the workflow skips anyone else's once a pull request has two reviews.
+  (`gh pr ready --undo`, then `gh pr ready`). Once a pull request has two reviews, whoever
+  requested them, the workflow skips every request but the supervisor's and posts nothing. So the
+  implementer requests a re-review only when the pull request has exactly one review summary (a
+  `github-actions[bot]` comment ending in `Reviewed at <sha>.`) and every `[fix]` finding is fixed
+  or answered. With two summaries, it asks the supervisor for a re-review in one pull request
+  comment instead.
 
 ## Legibility thresholds
 
