@@ -14,5 +14,7 @@ Answer every finding as **fixed** (cite the commit) or **deferred** (give the re
 - `[note]`: no action. Answer all notes together in one pull request comment.
 - A finding with no disposition counts as `[escalate]`. A supervisor reply on a finding sets its
   disposition.
+- Never resolve a review thread. The reviewer resolves its own once it finds the pull request has
+  no issues, and the supervisor resolves theirs.
 - A local review has no threads. Its findings go in `pr-<number>-review-findings.md` at the
   repository root, which is never committed, and each answer goes under its finding there.

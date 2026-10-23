@@ -136,6 +136,8 @@ jobs:
               disposition label. Give `path` and `line` (and `start_line` for a range) only for a
               finding about a line in the diff, numbered in the head version of the file. Those
               are posted inline; the rest go in the summary.
+            - `clean`: true only when REVIEW.md says the pull request has no issues. The step
+              then resolves every thread this review has opened, notes included.
           # The action already swaps the pull request's Claude config for main's. These flags also
           # keep main's project settings and .mcp.json servers out: the reviewer reads its rules
           # explicitly and needs no tools beyond the ones listed. Leaving Read, Glob, and Grep
@@ -148,7 +150,7 @@ jobs:
             --add-dir ${{ runner.temp }}/review-context
             --disallowedTools "Edit,Write,NotebookEdit,WebFetch,WebSearch"
             --allowedTools "Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git merge-base:*),Bash(git grep:*),Bash(git ls-files:*)"
-            --json-schema '{"type":"object","required":["summary","findings"],"properties":{"summary":{"type":"string"},"findings":{"type":"array","items":{"type":"object","required":["disposition","body"],"properties":{"disposition":{"type":"string","enum":["fix","escalate","note"]},"body":{"type":"string"},"path":{"type":"string"},"line":{"type":"integer"},"start_line":{"type":"integer"}}}}}}'
+            --json-schema '{"type":"object","required":["summary","findings","clean"],"properties":{"summary":{"type":"string"},"clean":{"type":"boolean"},"findings":{"type":"array","items":{"type":"object","required":["disposition","body"],"properties":{"disposition":{"type":"string","enum":["fix","escalate","note"]},"body":{"type":"string"},"path":{"type":"string"},"line":{"type":"integer"},"start_line":{"type":"integer"}}}}}}'
 
   post:
     needs: review
@@ -170,7 +172,7 @@ jobs:
               core.setFailed('The review output looks like it contains a credential. Nothing was posted.');
               return;
             }
-            const { summary, findings } = JSON.parse(raw);
+            const { summary, findings, clean } = JSON.parse(raw);
             const notInline = [];
             for (const f of findings) {
               const body = `[${f.disposition}] ${f.body}`;
@@ -205,3 +207,39 @@ jobs:
               issue_number: pr.number,
               body: parts.join('\n\n'),
             });
+
+            if (!clean) return;
+            if (findings.some((f) => f.disposition !== 'note')) {
+              core.warning('The review reported no issues but returned [fix] or [escalate] findings, so no threads were resolved.');
+              return;
+            }
+            const threadsQuery = `query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $number) {
+                  reviewThreads(first: 100, after: $cursor) {
+                    pageInfo { hasNextPage endCursor }
+                    nodes { id isResolved comments(first: 1) { nodes { author { login } } } }
+                  }
+                }
+              }
+            }`;
+            const open = [];
+            let cursor = null;
+            do {
+              const { repository } = await github.graphql(threadsQuery, { ...context.repo, number: pr.number, cursor });
+              const page = repository.pullRequest.reviewThreads;
+              for (const thread of page.nodes) {
+                // GraphQL reports the Actions bot's login without the [bot] suffix.
+                const author = thread.comments.nodes[0]?.author?.login;
+                if (!thread.isResolved && (author === 'github-actions' || author === 'github-actions[bot]')) {
+                  open.push(thread.id);
+                }
+              }
+              cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+            } while (cursor);
+            for (const threadId of open) {
+              await github.graphql(
+                'mutation($threadId: ID!) { resolveReviewThread(input: { threadId: $threadId }) { thread { id } } }',
+                { threadId },
+              );
+            }

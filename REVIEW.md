@@ -81,7 +81,11 @@ When this pull request already has a review from you:
 ## Summary
 
 The first line counts findings by disposition, for example
-`fix 1 · escalate 2 · note 3 (+4 not listed)`. If there is no `[fix]` or `[escalate]` finding, the
-first line is `Nothing to fix or decide.` Then list the escalation questions.
+`fix 1 · escalate 2 · note 3 (+4 not listed)`. Then list the escalation questions.
+
+The pull request has no issues when this review has no `[fix]` or `[escalate]` finding, and every
+earlier one is resolved: fixed by the change, or its answer accepted by the supervisor on its
+thread. Then the first line is `Nothing to fix or decide.`, and every thread the review has
+opened, notes included, is resolved.
 
 Order findings `[fix]`, `[escalate]`, `[note]`, most severe first within each.
