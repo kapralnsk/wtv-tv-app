@@ -9,8 +9,8 @@ concurrency:
   group: agent-review-${{ github.event.pull_request.number }}
 
 jobs:
-  # Only the supervisor can request a review once the pull request has two review summaries:
-  # the first review plus the one re-review the implementer may request (AGENTS.md).
+  # Only the supervisor can request a review once the pull request has two review summaries,
+  # whoever requested them (AGENTS.md, Re-review).
   gate:
     if: >-
       github.event.pull_request.draft == false &&
