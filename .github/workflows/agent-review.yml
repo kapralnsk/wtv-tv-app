@@ -9,12 +9,41 @@ concurrency:
   group: agent-review-${{ github.event.pull_request.number }}
 
 jobs:
-  # The model can read the change and nothing more: its token is read-only, it has no tool that
-  # posts, and it returns findings as structured output for the post job to publish.
-  review:
+  # Only the supervisor can request a review once the pull request has two review summaries:
+  # the first review plus the one re-review the implementer may request (AGENTS.md).
+  gate:
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.user.login != 'kapralnsk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      run: ${{ steps.count.outputs.run }}
+    steps:
+      - id: count
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REQUESTER: ${{ github.triggering_actor }}
+        run: |
+          # Summaries are the post job's comments, recognized by their last line.
+          summaries=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '[.[] | select(.user.login == "github-actions[bot]" and (.body | test("\nReviewed at [0-9a-f]{40}\\.$")))] | length' \
+            | awk '{ n += $1 } END { print n + 0 }')
+          if [ "$REQUESTER" = kapralnsk ] || [ "$summaries" -le 1 ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::This pull request already has $summaries reviews. Only the supervisor can request another."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # The model can read the change and nothing more: its token is read-only, it has no tool that
+  # posts, and it returns findings as structured output for the post job to publish.
+  review:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

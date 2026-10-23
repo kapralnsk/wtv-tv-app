@@ -134,8 +134,10 @@ findings, and a separate step posts them as `github-actions[bot]`. It needs the
 `CLAUDE_CODE_OAUTH_TOKEN` repository secret. The reviewer trusts comments from
 `github-actions[bot]`, so no other workflow may comment with the default token.
 
-- **Re-review**: on request only. The supervisor converts the pull request back to draft and
-  marks it ready again. The implementer never does this to get another review.
+- **Re-review**: requested by converting the pull request back to draft and marking it ready again
+  (`gh pr ready --undo`, then `gh pr ready`). The implementer may request one re-review per pull
+  request, once it has fixed or answered every `[fix]` finding. After that, only the supervisor
+  requests re-reviews; the workflow skips anyone else's once a pull request has two reviews.
 
 ## Legibility thresholds
 
