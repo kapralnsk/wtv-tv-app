@@ -157,7 +157,10 @@ jobs:
     if: needs.review.outputs.review != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Resolving a review thread needs write access to the repository, not only to pull requests.
+    # The job runs no model and never checks out code.
     permissions:
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/github-script@v8
