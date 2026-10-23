@@ -83,17 +83,8 @@ GitHub identities:
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
   tests are done; that triggers the agent review.
 - If the pull request edits any `spec.md`, say so in its description.
-- Agent reviews, including local `/code-review` runs, follow `REVIEW.md`. Act on each finding by
-  its disposition, and answer it as **fixed** (cite the commit) or **deferred** (give the reason):
-  - `[fix]`: fix it without asking, and answer on its thread. If it turns out to be wrong, or its
-    fix meets an `[escalate]` condition, answer it as deferred and say why.
-  - `[escalate]`: do not implement it. Answer on its thread as deferred to the supervisor, and
-    act on it once the supervisor decides.
-  - `[note]`: no action. Answer all notes together in one pull request comment.
-  - A reviewer finding with no disposition counts as `[escalate]`. A supervisor reply on a
-    finding sets its disposition.
-  - A local review has no threads. Its findings go in `pr-<number>-review-findings.md` at the
-    repository root, which is never committed, and each answer goes under its finding there.
+- When a review produces findings, act on them and answer them as `docs/answering-reviews.md`
+  says.
 - Never merge. Never approve. Never force-push.
 - The implementer cannot push changes under `.github/workflows/`: its app has no `workflows`
   permission. Commit them, and ask the supervisor to push.
