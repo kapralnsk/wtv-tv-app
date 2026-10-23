@@ -41,7 +41,7 @@ All of these hold:
 
 Any one of these is enough:
 
-- The fix changes intended behavior or needs a `spec.md` edit (constitution Principle I).
+- The fix changes intended behavior (constitution Principle I).
 - The fix edits a `spec.md`, or a path the implementer may not change: the constitution,
   AGENTS.md, this file, `.claude/skills/`, `.github/workflows/`, or `.devcontainer/`.
 - The fix changes the supervisor's workflow, adds a dependency, or adds recurring cost.
@@ -63,10 +63,8 @@ count in the summary instead.
 ## Do not report
 
 - Anything a formatter, linter, or type checker in this repository already enforces.
-- Additions the spec does not ask for: abstractions, options, configurability, or generality
-  (Principle VII).
-- Cases the product rules out: devices other than the two targets, input other than the D-pad,
-  and anything in the spec's Out of scope section.
+- Suggestions the constitution rules out. If the change itself does what the constitution rules
+  out, that is a finding.
 - A missing protection the repository does not claim, or one its documentation lists as not
   covered. A gap in a protection it does claim is a finding.
 
