@@ -83,8 +83,8 @@ GitHub identities:
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
   tests are done; that triggers the agent review.
 - If the pull request edits any `spec.md`, say so in its description.
-- When a review produces findings, act on them and answer them as `docs/answering-reviews.md`
-  says.
+- Reviews, including local `/code-review` runs, follow `REVIEW.md`. When a review produces
+  findings, act on them and answer them as `docs/answering-reviews.md` says.
 - Never merge. Never approve. Never force-push.
 - The implementer cannot push changes under `.github/workflows/`: its app has no `workflows`
   permission. Commit them, and ask the supervisor to push.
