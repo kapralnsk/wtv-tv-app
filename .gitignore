@@ -25,3 +25,6 @@ mitm_mcp_traffic.db
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local review findings (AGENTS.md, Pull requests)
+/pr-*-review-findings.md
