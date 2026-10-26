@@ -83,8 +83,8 @@ GitHub identities:
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
   tests are done; that triggers the agent review.
 - If the pull request edits any `spec.md`, say so in its description.
-- Reviews, including local `/code-review` runs, follow `REVIEW.md`. When a review produces
-  findings, act on them and answer them as `docs/answering-reviews.md` says.
+- When a review produces findings, act on them and answer them as `docs/answering-reviews.md`
+  says.
 - Never merge. Never approve. Never force-push.
 - The implementer cannot push changes under `.github/workflows/`: its app has no `workflows`
   permission. Commit them, and ask the supervisor to push.
@@ -120,10 +120,14 @@ Before any observation work, check that the MCP works: open `https://w.tv/` with
 ### Agent review setup
 
 `.github/workflows/agent-review.yml` runs the agent review and is the source of truth for its
-trigger, skips, model, effort, and tools. The model gets read-only access and returns its
-findings, and a separate step posts them as `github-actions[bot]`. It needs the
-`CLAUDE_CODE_OAUTH_TOKEN` repository secret. The reviewer trusts comments from
-`github-actions[bot]`, so no other workflow may comment with the default token.
+trigger, skips, model, effort, and tools. The logins it relies on are set once, in its `env`
+block. The model gets read-only access and returns its findings, and a separate step posts them
+as `github-actions[bot]`. It needs the `CLAUDE_CODE_OAUTH_TOKEN` repository secret. The reviewer
+trusts comments from `github-actions[bot]`, so no other workflow may comment with the default
+token.
+
+A reviewing session, whether the workflow's or a local `/code-review` run, follows `REVIEW.md`.
+Other sessions don't need to read it.
 
 - **Re-review**: requested by converting the pull request back to draft and marking it ready again
   (`gh pr ready --undo`, then `gh pr ready`). Once a pull request has two reviews, whoever
