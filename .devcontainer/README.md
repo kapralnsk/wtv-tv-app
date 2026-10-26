@@ -47,7 +47,11 @@ the supervisor's, and the supervisor can approve them.
    deletion; the supervisor bypasses for pull requests only. To keep merging with the supervisor
    even after approval, also restrict updates, with only the repository admin as bypass actor.
 4. Repository settings → Actions: workflow permissions read-only, and GitHub Actions not allowed
-   to create or approve pull requests. Keep secrets in an environment that only `main` can use.
+   to create or approve pull requests. The agent review's `CLAUDE_CODE_OAUTH_TOKEN` has to be a
+   repository secret, because the review runs on pull request branches. Only the supervisor can
+   change the workflow that reads it, since the implementer can't push workflow files, and the
+   review never runs pull request code with it. Keep every other secret in an environment that
+   only `main` can use.
 
 ## Host setup (once)
 
