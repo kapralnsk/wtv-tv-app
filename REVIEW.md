@@ -13,8 +13,9 @@ act on is a cost, not a contribution.
 
 - **Failure scenario**: the concrete inputs or state, and the wrong result. A claim that something
   "may", "might", or "could" break, without a scenario, is not a finding.
-- **Evidence**: a `file:line` citation for each claim about behavior, or a command you ran and
-  its output. Do not infer behavior from names, comments, or documentation.
+- **Evidence**: a `file:line` citation for each claim about behavior, or the output of a
+  read-only command such as `git grep`. Never run the code under review. Do not infer behavior
+  from names, comments, or documentation.
 - **Disposition**: `[fix]`, `[escalate]`, or `[note]`, by the rules below. Start the finding with
   it.
 - **Done when**: for `[fix]` only, a check the implementer can run that shows the fix works.
@@ -30,9 +31,9 @@ All of these hold:
 
 1. This pull request introduces it.
 2. It breaks what the feature's spec, the constitution, or AGENTS.md requires, or it is a defect
-   whose correct behavior is not in question: a crash, a race, data loss, a leaked secret, or a
-   broken build or test.
-3. You confirmed it in the code or by running it.
+   whose correct behavior is not in question: a crash, a race, data loss, a security hole such as
+   a leaked secret or an injection, or a broken build or test.
+3. You confirmed it in the code.
 4. There is one reasonable fix, and you state it.
 5. The fix stays within the files and behavior this pull request already changes.
 6. The implementer can verify the fix without a device, a login, or the supervisor.
@@ -66,8 +67,9 @@ count in the summary instead.
 - Anything a formatter, linter, or type checker in this repository already enforces.
 - Suggestions the constitution rules out. If the change itself does what the constitution rules
   out, that is a finding.
-- A missing protection the repository does not claim, or one its documentation lists as not
-  covered. A gap in a protection it does claim is a finding.
+- A risk the documentation explicitly accepts, for example by listing it as not covered. A
+  security hole the change itself opens is always a finding, whether or not anything claims the
+  protection. An extra protection layer that nothing claims is a `[note]` at most.
 
 ## Re-reviews
 
@@ -75,7 +77,7 @@ When this pull request already has a review from you:
 
 - Say for each earlier `[fix]` and `[escalate]` finding whether it is resolved.
 - Review only the changes since that review. Do not re-audit unchanged code.
-- Report new `[fix]` and `[escalate]` findings only. Add no new notes.
+- Put new notes only on lines changed since that review.
 - Do not raise again a finding that was answered as deferred, unless the new changes affect it.
 
 ## Summary
