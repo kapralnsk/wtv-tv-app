@@ -16,10 +16,13 @@ env:
   REVIEWER: github-actions[bot]
 
 jobs:
-  # Skips the supervisor's own pull requests. Once a pull request has two review summaries,
-  # whoever requested them, only the supervisor can request another (AGENTS.md, Re-review).
+  # Skips the supervisor's own pull requests: the supervisor owns the repository, so those are the
+  # OWNER's. Once a pull request has two review summaries, whoever requested them, only the
+  # supervisor can request another (AGENTS.md, Re-review).
   gate:
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.author_association != 'OWNER'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -31,13 +34,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
-          AUTHOR: ${{ github.event.pull_request.user.login }}
           REQUESTER: ${{ github.triggering_actor }}
         run: |
-          if [ "$AUTHOR" = "$SUPERVISOR" ]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           # Summaries are the post job's comments, recognized by their last line.
           summaries=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
             --jq '[.[] | select(.user.login == $ENV.REVIEWER and (.body | test("\nReviewed at [0-9a-f]{40}\\.$")))] | length' \
