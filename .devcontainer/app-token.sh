@@ -63,9 +63,14 @@ mint() {
     '{repositories: [$r], permissions: {contents: "write", pull_requests: "write", metadata: "read"}}')
   mkdir -p "$(dirname "$cache")"
   umask 077
-  call POST "/app/installations/$installation/access_tokens" "$token_jwt" -d "$body" > "$cache.tmp" \
+  # Concurrent calls each mint into their own file; mv within the directory replaces the cache
+  # atomically, so a reader never sees a partial one.
+  tmp=$(mktemp "$cache.XXXXXX")
+  trap 'rm -f "$tmp"' EXIT
+  call POST "/app/installations/$installation/access_tokens" "$token_jwt" -d "$body" > "$tmp" \
     || die "minting a token failed"
-  mv "$cache.tmp" "$cache"
+  jq -e .token "$tmp" > /dev/null || die "the minted token response has no token"
+  mv "$tmp" "$cache"
 }
 
 token() {
