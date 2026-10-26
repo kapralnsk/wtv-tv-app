@@ -1,3 +1,4 @@
+# Needs the CLAUDE_CODE_OAUTH_TOKEN repository secret.
 name: Agent review
 
 on:
