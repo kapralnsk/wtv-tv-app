@@ -1,0 +1,13 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "noPassword"
+    },
+    "./no-gpg": {}
+  },
+  "containerUser": "root",
+  "remoteUser": "node"
+}

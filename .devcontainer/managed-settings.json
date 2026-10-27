@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable",
+    "deny": [
+      "Bash(gh pr merge *)",
+      "Bash(gh pr review *)",
+      "Bash(gh api *pulls/*/merge*)",
+      "Bash(gh api *mergePullRequest*)",
+      "Bash(gh api *APPROVE*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/opt/wtv-devcontainer/check-workspace.sh || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

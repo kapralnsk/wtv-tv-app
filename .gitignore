@@ -10,21 +10,16 @@ app/build
 # IDE
 /.idea
 .DS_Store
+.vscode
 
 # Kotlin compiler sessions
 .kotlin/
 
-# Node (capture-specs tooling)
-capture-specs/node_modules/
-
 # MCP / tool artifacts
 .playwright-mcp/
-mitm_mcp_traffic.db
-*.flows
-/flows/
 
 # Claude Code local settings
 .claude/settings.local.json
 
-# Local review findings (AGENTS.md, Pull requests)
+# Local review findings (docs/answering-reviews.md)
 /pr-*-review-findings.md

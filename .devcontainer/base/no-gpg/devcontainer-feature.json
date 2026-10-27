@@ -1,0 +1,7 @@
+{
+  "id": "no-gpg",
+  "version": "1.0.0",
+  "name": "No GnuPG",
+  "description": "Removes gpgconf after desktop-lite installs it, so VS Code finds no agent socket and forwards no GPG agent.",
+  "installsAfter": ["ghcr.io/devcontainers/features/desktop-lite"]
+}

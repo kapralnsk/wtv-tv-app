@@ -64,13 +64,15 @@ Component knowledge relied on beyond one feature is promoted from its plan to
 
 GitHub identities:
 
-| Role        | Login                 |
-| ----------- | --------------------- |
-| Implementer | `<machine-account>`   |
-| Reviewer    | `github-actions[bot]` |
-| Supervisor  | `kapralnsk`           |
+| Role        | Login                                            |
+| ----------- | ------------------------------------------------ |
+| Implementer | `mechakapral[bot]` (the supervisor's GitHub App) |
+| Reviewer    | `github-actions[bot]`                            |
+| Supervisor  | `kapralnsk`                                      |
 
 - Use `gh` and `git` only as the implementer. Never use the supervisor's credentials.
+- From a host session, run implementer `git` and `gh` as `.devcontainer/bot-git` and
+  `.devcontainer/bot-gh`.
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
   tests are done; that triggers the agent review.
 - If the pull request edits any `spec.md`, say so in its description.
@@ -84,11 +86,14 @@ GitHub identities:
 
 ### Agent environment
 
-Agent sessions run in the dev container defined in `.devcontainer/`, once it exists (constitution,
-Agent environment).
+Agent sessions run in the dev container in `.devcontainer/` (constitution, Agent environment);
+its README covers setup and launch. Its only GitHub credential is the implementer's.
 
-- Its only GitHub credential is the implementer's. Nothing from the host is mounted or forwarded
-  except the workspace (no `~/.ssh`, `~/.config/gh`, `~/.gitconfig`, SSH agent, or Docker socket).
+- `/workspace` is the container's own clone. `/opt/wtv-devcontainer` (the supervisor's
+  `.devcontainer/`) and `.vscode/` are read-only. `git push -u` works.
+- Each session starts with the result of `/opt/wtv-devcontainer/check-workspace.sh` in its
+  context. If it or `/opt/wtv-devcontainer/check-isolation.sh` reports a failure, stop and report
+  the failing checks to the supervisor.
 - Change `.devcontainer/` only when the supervisor asks.
 
 ### Observing w.tv

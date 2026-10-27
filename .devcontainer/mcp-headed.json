@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+        "playwright-headed": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@playwright/mcp@0.0.83",
+                "--browser=chromium",
+                "--user-data-dir=/home/node/.browser-profile",
+                "--caps=vision,devtools"
+            ]
+        }
+    }
+}

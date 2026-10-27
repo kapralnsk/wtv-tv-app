@@ -1,0 +1,44 @@
+{
+  "name": "wtv-google-tv agent",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "containerUser": "root",
+  "remoteUser": "node",
+  "initializeCommand": "mkdir -p .vscode",
+  "workspaceMount": "",
+  "workspaceFolder": "/workspace",
+  "mounts": [
+    "source=wtv-workspace-${devcontainerId},target=/workspace,type=volume",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/opt/wtv-devcontainer,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.vscode,target=/workspace/.vscode,type=bind,readonly",
+    "source=wtv-claude-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=wtv-app-key-${devcontainerId},target=/home/node/.config/wtv-app,type=volume",
+    "source=wtv-browser-profile-${devcontainerId},target=/home/node/.browser-profile,type=volume"
+  ],
+  "appPort": ["127.0.0.1:6080:6080"],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "GIT_CONFIG_GLOBAL": "/home/node/.config/git/config",
+    "WTV_REPO": "kapralnsk/wtv-tv-app"
+  },
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "",
+    "GIT_ASKPASS": "",
+    "VSCODE_GIT_ASKPASS_MAIN": "",
+    "VSCODE_GIT_ASKPASS_NODE": "",
+    "VSCODE_GIT_IPC_HANDLE": "",
+    "WTV_AGENT_WINDOW": "${localEnv:WTV_AGENT_WINDOW}"
+  },
+  "postStartCommand": "/opt/wtv-devcontainer/setup-git.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code"],
+      "settings": {
+        "chat.disableAIFeatures": true,
+        "git.terminalAuthentication": false,
+        "github.gitAuthentication": false
+      }
+    }
+  }
+}

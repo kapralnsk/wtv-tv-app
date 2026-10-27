@@ -1,0 +1,42 @@
+#!/bin/sh
+# Runs on the host. Runs git as the implementer app's bot, for host sessions that commit or push as
+# the implementer. The credential and identity come from wtv-app-token in the running agent
+# container; no other credential helper, askpass program or SSH key is used, so a failed mint fails
+# the command instead of falling back to the supervisor's credentials.
+set -eu
+
+die() { echo "bot-git: $1" >&2; exit 1; }
+
+repo=$(cd "$(dirname "$0")/.." && pwd)
+id=$(docker ps -q --filter "label=devcontainer.local_folder=$repo") || die "listing containers failed"
+# More than one ID comes back newline-separated.
+case $id in
+  "") die "no running agent container for $repo" ;;
+  *[!0-9a-f]*) die "more than one running agent container for $repo" ;;
+esac
+
+# Not printed: a URL rewritten by insteadOf can carry a token.
+urls=$(git remote get-url --all origin && git remote get-url --all --push origin) \
+  || die "this repository has no origin"
+if printf '%s\n' "$urls" | grep -qv '^https://github\.com/'; then
+  die "origin is not an https://github.com/ URL"
+fi
+
+# By absolute path, so the agent can't replace the script itself. What it prints is still
+# agent-controlled data: the script runs other commands through the container's PATH, and
+# node can write its caches.
+token_cmd=/usr/local/bin/wtv-app-token
+identity=$(docker exec -u node "$id" "$token_cmd" identity) \
+  || die "reading the bot's identity in the agent container failed"
+name=$(printf '%s' "$identity" | cut -f1)
+email=$(printf '%s' "$identity" | cut -f2)
+
+# The empty helpers clear every helper configured earlier, the keychain's included. An empty
+# GIT_ASKPASS keeps git from asking VS Code's askpass, which answers with the supervisor's sign-in.
+# Skipping the global and system config keeps the supervisor's own settings, such as signing,
+# out of the bot's commits.
+GIT_TERMINAL_PROMPT=0 GIT_ASKPASS= GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 exec git \
+  -c credential.helper= -c credential.https://github.com.helper= \
+  -c "credential.https://github.com.helper=!docker exec -i -u node $id $token_cmd git-credential" \
+  -c protocol.ssh.allow=never \
+  -c "user.name=$name" -c "user.email=$email" "$@"
