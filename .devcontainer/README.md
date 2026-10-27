@@ -7,6 +7,9 @@ directory, and reviews any diff to it before rebuilding.
 
 ## What is inside
 
+The image is a local base built from `base/` (the apt packages, Chromium's libraries, desktop-lite
+and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Rebuilding).
+
 - Node 24 LTS, `gh`, `git`, Python 3 (spec-kit), ripgrep, Claude Code (native installer: latest, auto-updating).
 - `wtv-app-token`, which mints the app's installation tokens, and a `gh` wrapper at
   `/usr/local/bin/gh` that runs each call with a fresh token. git uses `wtv-app-token` as its only
@@ -60,11 +63,11 @@ the supervisor's, and the supervisor can approve them.
 ## Host setup (once)
 
 1. Docker runs on OrbStack (the active context). Every image and feature is public, so builds
-   need no registry login. A `ghcr.io` login in the keychain is looked up on each build anyway;
-   to build without it, point `DOCKER_CONFIG` at a directory holding a `cli-plugins/docker-buildx`
-   symlink and a `config.json` of `{"auths":{"none.invalid":{}}}`, and set `DOCKER_HOST` to the
-   OrbStack socket. The dummy entry matters: with no credentials configured at all, the
-   devcontainer CLI falls back to `osxkeychain` on macOS.
+   need no registry login. A `ghcr.io` login in the keychain is looked up on each build anyway,
+   `base/build.sh`'s included; to build without it, point `DOCKER_CONFIG` at a directory holding
+   a `cli-plugins/docker-buildx` symlink and a `config.json` of `{"auths":{"none.invalid":{}}}`,
+   and set `DOCKER_HOST` to the OrbStack socket. The dummy entry matters: with no credentials
+   configured at all, the devcontainer CLI falls back to `osxkeychain` on macOS.
 2. Two VS Code instances. GitHub sign-ins, and each extension's permission to use them, are
    shared by every window of one instance, so the window that attaches to the container is a
    separate instance:
@@ -103,12 +106,13 @@ the supervisor's, and the supervisor can approve them.
    global config with credential helpers cleared, and a `PATH` without
    `docker-credential-osxkeychain` or Homebrew's `gpgconf` (hence the absolute `dockerPath`), with
    `DOCKER_CONFIG` pointing at a dummy config as in step 1.
-3. The image has no `gpgconf` (the `no-gpg` feature removes it after desktop-lite installs it), so
-   VS Code finds no agent socket in the container and forwards no GPG agent.
+3. The image has no `gpgconf` (the `base/no-gpg` feature removes it after desktop-lite installs
+   it), so VS Code finds no agent socket in the container and forwards no GPG agent.
 
 ## Launch
 
-From the repository root on the host, either:
+From the repository root on the host, first build the base image with `.devcontainer/base/build.sh`,
+once and again after any change to `base/`. Then either:
 
 - **CLI:** `npx @devcontainers/cli up --workspace-folder .`, then
   `npx @devcontainers/cli exec --workspace-folder . claude`. This path forwards nothing.
@@ -118,6 +122,22 @@ From the repository root on the host, either:
   what that window copied or installed, so rebuild it from the agent window.
 
 Both use the same container definition and volumes.
+
+## Rebuilding
+
+The agent image's layers are ordered by how often they change, so that most edits rebuild fast:
+
+- A script or settings edit rebuilds only the copied files, in seconds. A Playwright pin bump
+  downloads Chromium.
+- A change to `base/` needs the tag in `Dockerfile`'s `FROM wtv-agent-base:<n>` line bumped, then
+  `base/build.sh` run again. That build and the agent build after it download everything, so run
+  them off the VPN if possible. Remove old tags with `docker image rm`.
+- Never use **Rebuild Container Without Cache**, **Rebuild Without Cache and Reopen in Container**
+  or the CLI's `--no-cache`: the CLI adds `--pull` to a build without cache, and `--pull` cannot
+  resolve the local base. **Rebuild Container** and **Rebuild and Reopen in Container** in the
+  agent window build on the local base, like the CLI, so build it with `base/build.sh` first.
+- Big downloads that rarely change, such as phase 1's JDK and Android SDK, go in `base/`. Files
+  that change often are copied last.
 
 ## First run
 
