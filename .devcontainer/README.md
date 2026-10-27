@@ -221,7 +221,10 @@ origin is not an `https://github.com/` URL.
   Code server are in the container, reachable from every session there, CLI ones included.
   `check-isolation.sh` confirms each live channel belongs to a window opened by
   `agent-window.sh`, by a marker the agent could forge, and cannot verify from inside that the
-  host answers nothing without using the channel. Processes in
+  host answers nothing without using the channel. After the agent window reloads, the old
+  channel server can keep running with no extension host left to identify its window. The check
+  then fails closed, naming that session, until the container restarts: rebuild or reopen it
+  from the agent window. Processes in
   the container all run as `node`, and OrbStack's `kernel.yama.ptrace_scope` is 0, so the agent
   can inspect and alter the VS Code server and its extension host; the agent window keeps no
   GitHub sign-in for them to hold.
