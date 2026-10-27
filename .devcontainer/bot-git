@@ -22,7 +22,9 @@ if printf '%s\n' "$urls" | grep -qv '^https://github\.com/'; then
   die "origin is not an https://github.com/ URL"
 fi
 
-identity=$(docker exec -u node "$id" wtv-app-token identity) \
+# By absolute path: node can write ~/.local/bin, which comes first on the container's PATH.
+token_cmd=/usr/local/bin/wtv-app-token
+identity=$(docker exec -u node "$id" "$token_cmd" identity) \
   || die "reading the bot's identity in the agent container failed"
 name=$(printf '%s' "$identity" | cut -f1)
 email=$(printf '%s' "$identity" | cut -f2)
@@ -33,6 +35,6 @@ email=$(printf '%s' "$identity" | cut -f2)
 # out of the bot's commits.
 GIT_TERMINAL_PROMPT=0 GIT_ASKPASS= GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 exec git \
   -c credential.helper= -c credential.https://github.com.helper= \
-  -c "credential.https://github.com.helper=!docker exec -i -u node $id wtv-app-token git-credential" \
+  -c "credential.https://github.com.helper=!docker exec -i -u node $id $token_cmd git-credential" \
   -c protocol.ssh.allow=never \
   -c "user.name=$name" -c "user.email=$email" "$@"
