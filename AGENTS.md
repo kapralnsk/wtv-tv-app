@@ -91,8 +91,9 @@ its README covers setup and launch. Its only GitHub credential is the implemente
 
 - `/workspace` is the container's own clone. `/opt/wtv-devcontainer` (the supervisor's
   `.devcontainer/`) and `.vscode/` are read-only. `git push -u` works.
-- If `/opt/wtv-devcontainer/check-isolation.sh` fails, stop and report the failing checks to the
-  supervisor.
+- Each session starts with the result of `/opt/wtv-devcontainer/check-workspace.sh` in its
+  context. If it or `/opt/wtv-devcontainer/check-isolation.sh` reports a failure, stop and report
+  the failing checks to the supervisor.
 - Change `.devcontainer/` only when the supervisor asks.
 
 ### Observing w.tv

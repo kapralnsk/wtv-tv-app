@@ -23,7 +23,10 @@ and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Reb
   best-effort layer: it matches command text, so the same call in another form, such as
   `/usr/bin/gh` or `sh -c`, gets past it. The guard is the ruleset on `main` (GitHub setup step
   3): the bot cannot update `main`, and a pull request needs an approval from someone other than
-  its last pusher.
+  its last pusher. A `SessionStart` hook puts the result of `check-workspace.sh` in every
+  session's context, so an agent knows at once if the clone's first checkout didn't finish. The
+  hook always exits 0: Claude only sees a hook's output when it does. User, project and local
+  settings can't disable a managed hook.
 - No firewall: egress is unrestricted, and auto mode is the control.
 
 `/workspace` is the container's own clone of the repository, in a volume, so nothing the agent
@@ -133,8 +136,10 @@ Both use the same container definition and volumes.
 
 The agent image's layers are ordered by how often they change, so that most edits rebuild fast:
 
-- A script or settings edit rebuilds only the copied files, in seconds. A Playwright pin bump
-  downloads Chromium.
+- An edit to `managed-settings.json`, `app-token.sh` or `gh-wrapper.sh` rebuilds only those
+  copied files, in seconds. `setup-git.sh`, `check-isolation.sh`, `check-workspace.sh` and
+  `mcp-headed.json` run from `/opt/wtv-devcontainer`, so edits to them need no rebuild. A
+  Playwright pin bump downloads Chromium.
 - A change to `base/` needs the tag in `Dockerfile`'s `FROM wtv-agent-base:<n>` line bumped, then
   `base/build.sh` run again. That build and the agent build after it download everything, so run
   them off the VPN if possible. Remove old tags with `docker image rm`.
@@ -157,11 +162,13 @@ Run these in the container. None of them needs the agent.
    Keep the original key somewhere safe, such as a password manager, and delete the downloaded
    file.
 2. `/opt/wtv-devcontainer/setup-git.sh` to apply the bot's commit identity and clone the
-   repository into `/workspace`. It also runs on every container start, and clones only while
-   `/workspace` holds no repository.
+   repository into `/workspace`. It also runs on every container start: it clones only while
+   `/workspace` holds no repository, and finishes a first checkout that a stopped start left
+   undone.
 3. `claude`, then `/login`.
-4. `/opt/wtv-devcontainer/check-isolation.sh`, in every path you launch through. Every check must
-   pass before handing the container to an agent; run it again after any change to the host setup.
+4. `/opt/wtv-devcontainer/check-isolation.sh` and `/opt/wtv-devcontainer/check-workspace.sh`, in
+   every path you launch through. Every check must pass before handing the container to an agent;
+   run them again after any change to the host setup.
 
 To revoke the agent's access, delete the key in the app's settings, or uninstall the app.
 

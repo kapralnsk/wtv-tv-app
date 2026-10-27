@@ -26,7 +26,6 @@ echo "git identity: $name <$email>"
 
 # git clone refuses /workspace, which already holds the .vscode mountpoint. So the clone goes
 # beside it and its .git moves in only once complete: a start interrupted mid-fetch starts over.
-# With no index yet, checkout is an initial checkout, and it refuses to overwrite untracked files.
 if [ ! -e /workspace/.git ]; then
   tmp=/workspace/.wtv-clone
   rm -rf "$tmp"
@@ -34,6 +33,11 @@ if [ ! -e /workspace/.git ]; then
   git clone -q --no-checkout "https://github.com/$WTV_REPO.git" "$tmp"
   mv "$tmp/.git" /workspace/.git
   rmdir "$tmp"
+fi
+# git writes the index last, so without one the first checkout never finished, even when a start
+# stopped right after the move above. With no index, checkout is an initial checkout, and it
+# refuses to overwrite files already in the way, which stops this script with git's error.
+if [ ! -e /workspace/.git/index ]; then
   git -C /workspace checkout -q
   echo "Checked out $(git -C /workspace branch --show-current)"
 fi
