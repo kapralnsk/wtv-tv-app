@@ -22,7 +22,9 @@ if printf '%s\n' "$urls" | grep -qv '^https://github\.com/'; then
   die "origin is not an https://github.com/ URL"
 fi
 
-# By absolute path: node can write ~/.local/bin, which comes first on the container's PATH.
+# By absolute path, so the agent can't replace the script itself. What it prints is still
+# agent-controlled data: the script runs other commands through the container's PATH, and
+# node can write its caches.
 token_cmd=/usr/local/bin/wtv-app-token
 identity=$(docker exec -u node "$id" "$token_cmd" identity) \
   || die "reading the bot's identity in the agent container failed"

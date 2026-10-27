@@ -14,7 +14,9 @@ case $id in
   *[!0-9a-f]*) die "more than one running agent container for $repo" ;;
 esac
 
-# By absolute path: node can write ~/.local/bin, which comes first on the container's PATH.
+# By absolute path, so the agent can't replace the script itself. What it prints is still
+# agent-controlled data: the script runs other commands through the container's PATH, and
+# node can write its caches.
 token=$(docker exec -u node "$id" /usr/local/bin/wtv-app-token) \
   || die "minting a token in the agent container failed"
 [ -n "$token" ] || die "the agent container returned an empty token"
