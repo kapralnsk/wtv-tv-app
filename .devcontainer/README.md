@@ -26,18 +26,24 @@ and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Reb
   its last pusher.
 - No firewall: egress is unrestricted, and auto mode is the control.
 
-The workspace is bind-mounted at `/workspace`. `.devcontainer/`, `.vscode/`, `.git/config` and
-`.git/hooks/` are mounted read-only over it, because the host executes them (container rebuilds,
-VS Code, and every host `git` command). The container's git config sets `push.default=current`,
-since `git push -u` cannot record tracking in a read-only `.git/config`.
+`/workspace` is the container's own clone of the repository, in a volume, so nothing the agent
+writes reaches the host checkout. Nothing in `.git` is mounted. The volume is listed in `mounts`,
+with `workspaceMount` empty, because the devcontainers CLI does not substitute `${devcontainerId}`
+in `workspaceMount`. Two host directories are mounted read-only:
+
+- `.devcontainer/` at `/opt/wtv-devcontainer`. Container starts and the commands below run its
+  scripts from there; the clone's copy is agent-writable, and the host never builds from it.
+- `.vscode/` over the clone's, since the agent window applies workspace settings, some of them on
+  the host side.
 
 Named volumes, per workspace, keep state across rebuilds:
 
-| Volume                         | Mounted at                  | Holds                           |
-| ------------------------------ | --------------------------- | ------------------------------- |
-| `wtv-claude-config-<id>`       | `/home/node/.claude`        | Claude Code login and settings  |
-| `wtv-app-key-<id>`             | `/home/node/.config/wtv-app` | The app's private key and ID   |
-| `wtv-browser-profile-<id>`     | `/home/node/.browser-profile` | The headed browser's profile  |
+| Volume                     | Mounted at                    | Holds                          |
+| -------------------------- | ----------------------------- | ------------------------------ |
+| `wtv-workspace-<id>`       | `/workspace`                  | The clone and unpushed work    |
+| `wtv-claude-config-<id>`   | `/home/node/.claude`          | Claude Code login and settings |
+| `wtv-app-key-<id>`         | `/home/node/.config/wtv-app`  | The app's private key and ID   |
+| `wtv-browser-profile-<id>` | `/home/node/.browser-profile` | The headed browser's profile   |
 
 ## GitHub setup (once)
 
@@ -150,11 +156,12 @@ Run these in the container. None of them needs the agent.
 
    Keep the original key somewhere safe, such as a password manager, and delete the downloaded
    file.
-2. `.devcontainer/setup-git.sh` to apply the bot's commit identity. It also runs on every
-   container start.
+2. `/opt/wtv-devcontainer/setup-git.sh` to apply the bot's commit identity and clone the
+   repository into `/workspace`. It also runs on every container start, and clones only while
+   `/workspace` holds no repository.
 3. `claude`, then `/login`.
-4. `.devcontainer/check-isolation.sh`, in every path you launch through. Every check must pass
-   before handing the container to an agent; run it again after any change to the host setup.
+4. `/opt/wtv-devcontainer/check-isolation.sh`, in every path you launch through. Every check must
+   pass before handing the container to an agent; run it again after any change to the host setup.
 
 To revoke the agent's access, delete the key in the app's settings, or uninstall the app.
 
@@ -170,7 +177,7 @@ the WAF accepts. If the WAF starts blocking headless anyway, switch the default 
 isolated rather than spoofing further. For features that need a w.tv login:
 
 1. Start the session with the headed server added:
-   `claude --mcp-config .devcontainer/mcp-headed.json`.
+   `claude --mcp-config /opt/wtv-devcontainer/mcp-headed.json`.
 2. Have the agent open `https://w.tv/` with the `playwright-headed` tools.
 3. Open `http://localhost:6080` on the host (noVNC, no password, bound to `127.0.0.1`) and log
    in on the browser there.
@@ -179,13 +186,29 @@ The profile persists in its volume, so the login survives rebuilds until w.tv ex
 one browser can use the profile at a time. To log out for good, remove the
 `wtv-browser-profile-<id>` volume.
 
+## Host sessions
+
+A session on the host that acts as the implementer, such as a supervisor-side Claude session that
+commits and pushes, runs git and gh only through `.devcontainer/bot-git` and `.devcontainer/bot-gh`.
+Plain `git` and `gh` on the host carry the supervisor's credentials. Both wrappers take the token
+and identity from `wtv-app-token` in the running agent container, and fail if it is not running or
+the mint fails.
+`bot-git` uses no other credential helper, askpass program or SSH, and refuses a repository whose
+origin is not an `https://github.com/` URL.
+
 ## What this does not cover
 
-- **Host execution of workspace files.** The agent can write the rest of the workspace, and the
-  host runs some of it: `.claude/settings.json` hooks and `.mcp.json` servers in a host Claude
-  session, build scripts such as `gradlew` and `package.json` scripts, and `.idea/` run
-  configurations. Run agent sessions only in the container, and review workspace changes before
-  running anything from them on the host.
+- **Host execution of agent-written files.** The host runs them only if the supervisor checks out
+  an agent branch on the host. Then it runs some of them: `.claude/settings.json` hooks and
+  `.mcp.json` servers in a host Claude session, build scripts such as `gradlew` and `package.json`
+  scripts, `.vscode/` settings, `.idea/` run configurations, and `.devcontainer/` on the next
+  rebuild. Review diffs to `.claude/`, `.mcp.json`, `.vscode/`, `.devcontainer/`, `.specify/` and
+  build scripts first. Reviewing on GitHub or fetching into the host checkout runs nothing.
+- **OrbStack's view of volumes.** OrbStack shows volumes on the host under
+  `~/OrbStack/docker/volumes/`, the workspace's included. Never open it there in an editor or run
+  git in it.
+- **Unpushed work.** It exists only in the `wtv-workspace-<id>` volume, so removing the volume
+  loses it.
 - **VS Code's host channel.** While the agent window is attached, its credential channel and VS
   Code server are in the container, reachable from every session there, CLI ones included.
   `check-isolation.sh` confirms each live channel belongs to a window opened by

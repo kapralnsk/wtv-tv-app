@@ -1,0 +1,19 @@
+#!/bin/sh
+# Runs on the host. Runs gh as the implementer app's bot, with a token minted by wtv-app-token in
+# the running agent container. GH_TOKEN takes precedence over gh's stored login, which is the
+# supervisor's, and is set only for this gh process.
+set -eu
+
+die() { echo "bot-gh: $1" >&2; exit 1; }
+
+repo=$(cd "$(dirname "$0")/.." && pwd)
+id=$(docker ps -q --filter "label=devcontainer.local_folder=$repo") || die "listing containers failed"
+# More than one ID comes back newline-separated.
+case $id in
+  "") die "no running agent container for $repo" ;;
+  *[!0-9a-f]*) die "more than one running agent container for $repo" ;;
+esac
+
+token=$(docker exec -u node "$id" wtv-app-token) || die "minting a token in the agent container failed"
+[ -n "$token" ] || die "the agent container returned an empty token"
+GH_TOKEN=$token exec gh "$@"

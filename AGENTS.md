@@ -71,6 +71,8 @@ GitHub identities:
 | Supervisor  | `kapralnsk`                                      |
 
 - Use `gh` and `git` only as the implementer. Never use the supervisor's credentials.
+- From a host session, run implementer `git` and `gh` as `.devcontainer/bot-git` and
+  `.devcontainer/bot-gh`.
 - Open pull requests as drafts while working. Mark a pull request ready when the work and its
   tests are done; that triggers the agent review.
 - If the pull request edits any `spec.md`, say so in its description.
@@ -87,9 +89,9 @@ GitHub identities:
 Agent sessions run in the dev container in `.devcontainer/` (constitution, Agent environment);
 its README covers setup and launch. Its only GitHub credential is the implementer's.
 
-- `.devcontainer/`, `.vscode/`, `.git/config` and `.git/hooks/` are read-only inside. Push with
-  `git push` (the container sets `push.default=current`); `git push -u` cannot record tracking.
-- If `.devcontainer/check-isolation.sh` fails, stop and report the failing checks to the
+- `/workspace` is the container's own clone. `/opt/wtv-devcontainer` (the supervisor's
+  `.devcontainer/`) and `.vscode/` are read-only. `git push -u` works.
+- If `/opt/wtv-devcontainer/check-isolation.sh` fails, stop and report the failing checks to the
   supervisor.
 - Change `.devcontainer/` only when the supervisor asks.
 

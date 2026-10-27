@@ -1,7 +1,7 @@
 #!/bin/sh
 # Mints installation tokens for the implementer GitHub App from its private key, so no GitHub
-# login is stored in the container. Tokens last an hour and are cached until 10 minutes before
-# they expire.
+# login is stored in the container. Tokens cover the repository named by WTV_REPO, last an hour
+# and are cached until 10 minutes before they expire.
 #
 #   wtv-app-token                     print a token
 #   wtv-app-token git-credential get  git credential helper protocol
@@ -20,8 +20,8 @@ die() { echo "wtv-app-token: $1" >&2; exit 1; }
 [ -r "$dir/app-id" ] || die "no app ID at $dir/app-id (see .devcontainer/README.md)"
 app_id=$(tr -d '[:space:]' < "$dir/app-id")
 
-origin=$(git -C /workspace remote get-url origin)
-repo=$(printf '%s' "$origin" | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')
+[ -n "${WTV_REPO:-}" ] || die "WTV_REPO is not set (devcontainer.json's containerEnv sets it)"
+repo=$WTV_REPO
 repo_name=${repo#*/}
 
 b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }

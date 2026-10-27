@@ -19,6 +19,9 @@ RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
   && chown -R node:node /ms-playwright \
   && ! command -v gpgconf
 
+# A new named volume takes its mount point's owner, so this lets node write the workspace volume.
+RUN install -d -o node -g node /workspace
+
 USER node
 ARG PLAYWRIGHT_MCP_VERSION=0.0.83
 # Warms the npx cache so .mcp.json's pinned version starts without a download.

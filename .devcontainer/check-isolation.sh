@@ -21,7 +21,7 @@ else
 fi
 
 if scope=$(wtv-app-token permissions 2>&1); then
-  want='{"permissions":{"contents":"write","metadata":"read","pull_requests":"write"},"repositories":["'"$(git -C /workspace remote get-url origin | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')"'"]}'
+  want='{"permissions":{"contents":"write","metadata":"read","pull_requests":"write"},"repositories":["'"$WTV_REPO"'"]}'
   if [ "$(printf '%s' "$scope" | jq -cS .)" = "$(printf '%s' "$want" | jq -cS .)" ]; then
     pass "app token is limited to contents and pull requests on one repository"
   else
@@ -162,21 +162,34 @@ else
   fail "managed settings are missing"
 fi
 
-for path in .devcontainer .vscode .git/hooks; do
-  if touch "/workspace/$path/.isolation-probe" 2>/dev/null; then
-    rm -f "/workspace/$path/.isolation-probe"
+# Prints the root, filesystem type and source of the mount at $1, from the mountinfo line whose
+# mount point it is; the last such line is the mount that is visible.
+mount_at() {
+  awk -v p="$1" '$5 == p { for (i = 7; i < NF && $i != "-"; i++) ; m = $4 " " $(i + 1) " " $(i + 2) } END { print m }' /proc/self/mountinfo
+}
+# A named volume's root is <docker-root>/volumes/<name>/_data, on the filesystem that holds the
+# other volumes. A bind of the host checkout has the host path as its root, over virtiofs on
+# OrbStack.
+workspace=$(mount_at /workspace)
+volume=$(mount_at /home/node/.claude)
+case "${workspace%% *}" in
+  */volumes/wtv-workspace-*/_data) named=1 ;;
+  *) named=0 ;;
+esac
+if [ "$named" = 1 ] && [ -n "$volume" ] && [ "${workspace#* }" = "${volume#* }" ]; then
+  pass "/workspace is the wtv-workspace volume, not a host bind mount"
+else
+  fail "/workspace is not the wtv-workspace volume: ${workspace:-not a mount point}"
+fi
+
+for path in /opt/wtv-devcontainer /workspace/.vscode; do
+  if touch "$path/.isolation-probe" 2>/dev/null; then
+    rm -f "$path/.isolation-probe"
     fail "$path is writable"
   else
     pass "$path is read-only"
   fi
 done
-
-if git -C /workspace config --local isolation.probe 1 2>/dev/null; then
-  git -C /workspace config --local --unset isolation.probe
-  fail ".git/config is writable"
-else
-  pass ".git/config is read-only"
-fi
 
 # w.tv's WAF answers HeadlessChrome with 403s, so .mcp.json spoofs the user agent. It must name
 # the Chromium major that the pinned @playwright/mcp launches; the client hints report that build.
