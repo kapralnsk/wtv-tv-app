@@ -1,8 +1,7 @@
 #!/bin/sh
 # Verifies inside the container that no host credential is reachable and that the agent cannot
-# widen its own isolation, and that the observation browser's user agent matches its build. Exits
-# non-zero if any check fails. Every check is passive: none connects to a forwarded socket or runs a
-# host credential helper.
+# widen its own isolation. Exits non-zero if any check fails. Every check is passive: none connects
+# to a forwarded socket or runs a host credential helper.
 
 failures=0
 pass() { echo "PASS  $1"; }
@@ -48,8 +47,7 @@ if [ -z "$helpers" ]; then
     fail "git credential fill does not return the app token"
   fi
 else
-  fail "other git credential helpers are configured: $helpers"
-  fail "git credential fill not run, so that no other helper is queried"
+  fail "other git credential helpers are configured, so git credential fill was not run: $helpers"
 fi
 
 # Each attached VS Code window runs a vscode-remote-containers-server-<session>.js process, through
@@ -190,29 +188,6 @@ for path in /opt/wtv-devcontainer /workspace/.vscode; do
     pass "$path is read-only"
   fi
 done
-
-# w.tv's WAF answers HeadlessChrome with 403s, so .mcp.json spoofs the user agent. It must name
-# the Chromium major that the pinned @playwright/mcp launches; the client hints report that build.
-args=$(jq -r '.mcpServers.playwright.args[]' /workspace/.mcp.json 2>/dev/null)
-mcp_version=$(printf '%s\n' "$args" | sed -n 's#^@playwright/mcp@##p')
-ua_major=$(printf '%s\n' "$args" | sed -n 's#^--user-agent=.* Chrome/\([0-9][0-9]*\)\..*#\1#p')
-build=""
-revision=""
-for modules in "$HOME"/.npm/_npx/*/node_modules; do
-  if [ "$(jq -r .version "$modules/@playwright/mcp/package.json" 2>/dev/null)" = "$mcp_version" ]; then
-    build=$(jq -r '.browsers[] | select(.name == "chromium") | .browserVersion' "$modules/playwright-core/browsers.json")
-    revision=$(jq -r '.browsers[] | select(.name == "chromium") | .revision' "$modules/playwright-core/browsers.json")
-  fi
-done
-if [ -z "$build" ]; then
-  fail "@playwright/mcp@${mcp_version:-?} from .mcp.json is not in the npx cache"
-elif [ ! -d "/ms-playwright/chromium-$revision" ]; then
-  fail "Chromium $build (revision $revision), which @playwright/mcp@$mcp_version launches, is not installed"
-elif [ "$ua_major" != "${build%%.*}" ]; then
-  fail ".mcp.json's user agent names Chrome ${ua_major:-<none>}, but @playwright/mcp@$mcp_version launches Chromium $build"
-else
-  pass ".mcp.json's user agent names Chrome $ua_major, matching the Chromium that @playwright/mcp@$mcp_version launches ($build)"
-fi
 
 echo "INFO  kernel.yama.ptrace_scope: $(cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null || echo unavailable)"
 echo "INFO  mounts: $(awk '$3 !~ /^(proc|sysfs|tmpfs|devpts|mqueue|cgroup2?|overlay|shm)$/ {print $2}' /proc/mounts | sort | tr '\n' ' ')"

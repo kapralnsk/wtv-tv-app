@@ -41,12 +41,12 @@ in `workspaceMount`. Two host directories are mounted read-only:
 
 Named volumes, per workspace, keep state across rebuilds:
 
-| Volume                     | Mounted at                    | Holds                          |
-| -------------------------- | ----------------------------- | ------------------------------ |
-| `wtv-workspace-<id>`       | `/workspace`                  | The clone and unpushed work    |
-| `wtv-claude-config-<id>`   | `/home/node/.claude`          | Claude Code login and settings |
-| `wtv-app-key-<id>`         | `/home/node/.config/wtv-app`  | The app's private key and ID   |
-| `wtv-browser-profile-<id>` | `/home/node/.browser-profile` | The headed browser's profile   |
+| Volume                     | Mounted at                    | Holds                                                       |
+| -------------------------- | ----------------------------- | ----------------------------------------------------------- |
+| `wtv-workspace-<id>`       | `/workspace`                  | The clone and unpushed work                                 |
+| `wtv-claude-config-<id>`   | `/home/node/.claude`          | Claude Code login and settings                              |
+| `wtv-app-key-<id>`         | `/home/node/.config/wtv-app`  | The app's private key and ID, and the bot's cached identity |
+| `wtv-browser-profile-<id>` | `/home/node/.browser-profile` | The headed browser's profile                                |
 
 ## GitHub setup (once)
 
@@ -137,8 +137,8 @@ Both use the same container definition and volumes.
 The agent image's layers are ordered by how often they change, so that most edits rebuild fast:
 
 - An edit to `managed-settings.json`, `app-token.sh` or `gh-wrapper.sh` rebuilds only those
-  copied files, in seconds. `setup-git.sh`, `check-isolation.sh`, `check-workspace.sh` and
-  `mcp-headed.json` run from `/opt/wtv-devcontainer`, so edits to them need no rebuild. A
+  copied files, in seconds. `setup-git.sh`, `check-isolation.sh`, `check-workspace.sh`,
+  `check-browser.sh` and `mcp-headed.json` run from `/opt/wtv-devcontainer`, so edits to them need no rebuild. A
   Playwright pin bump downloads Chromium.
 - A change to `base/` needs the tag in `Dockerfile`'s `FROM wtv-agent-base:<n>` line bumped, then
   `base/build.sh` run again. That build and the agent build after it download everything, so run
@@ -177,8 +177,9 @@ To revoke the agent's access, delete the key in the app's settings, or uninstall
 The default `playwright` server is headless and isolated: no profile survives the session, and
 nothing is logged in. w.tv's AWS WAF answers `HeadlessChrome` with 403s on its API hosts, so the
 server sends a regular Chrome user agent. Its major version must match the Chromium that the
-pinned `@playwright/mcp` launches, so update it whenever the pin changes; `check-isolation.sh`
-compares the two. The client hints (`Sec-CH-UA`, `navigator.userAgentData`) are not spoofed and
+pinned `@playwright/mcp` launches, so update it whenever the pin changes; `check-browser.sh`
+compares the two, and `docs/observing-wtv.md` runs it before observation work, so a mismatch
+stops only observation. The client hints (`Sec-CH-UA`, `navigator.userAgentData`) are not spoofed and
 report the real build; for Chromium 155 that is `Chromium` with no `HeadlessChrome` brand, which
 the WAF accepts. If the WAF starts blocking headless anyway, switch the default to headed and
 isolated rather than spoofing further. For features that need a w.tv login:

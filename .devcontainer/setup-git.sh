@@ -14,9 +14,14 @@ git config --global credential.helper ''
 git config --global --add 'credential.https://github.com.helper' ''
 git config --global --add 'credential.https://github.com.helper' '!wtv-app-token git-credential'
 
-if ! identity=$(wtv-app-token identity); then
+if [ ! -r "$HOME/.config/wtv-app/private-key.pem" ] || [ ! -r "$HOME/.config/wtv-app/app-id" ]; then
   echo "The implementer app is not set up. See First run in /opt/wtv-devcontainer/README.md, then run $0"
   exit 0
+fi
+if ! identity=$(wtv-app-token identity); then
+  echo "Reading the bot's identity failed (see above), so git has no commit identity. Run $0 again"
+  echo "once api.github.com is reachable."
+  exit 1
 fi
 name=$(printf '%s' "$identity" | cut -f1)
 email=$(printf '%s' "$identity" | cut -f2)

@@ -86,14 +86,29 @@ case "${1:-}" in
     [ "${2:-}" = get ] || exit 0
     host=$(sed -n 's/^host=//p')
     [ "$host" = github.com ] || exit 0
-    printf 'username=x-access-token\npassword=%s\n' "$(token)"
+    tok=$(token) || exit 1
+    printf 'username=x-access-token\npassword=%s\n' "$tok"
     ;;
   identity)
-    app=$(call GET /app "$(jwt)") || die "reading the app failed"
-    slug=$(printf '%s' "$app" | jq -r .slug)
-    bot=$(call GET "/users/$slug%5Bbot%5D" "$(token)") || die "reading the bot user failed"
-    id=$(printf '%s' "$bot" | jq -r .id)
-    printf '%s[bot]\t%s+%s[bot]@users.noreply.github.com\n' "$slug" "$id" "$slug"
+    # An app's bot never changes its name or ID, so one lookup per app ID is enough. The cache
+    # sits in the key volume, so it survives rebuilds.
+    cached="$dir/identity-$app_id"
+    if [ ! -s "$cached" ]; then
+      token_jwt=$(jwt)
+      app=$(call GET /app "$token_jwt") || die "reading the app failed"
+      slug=$(printf '%s' "$app" | jq -r .slug)
+      tok=$(token) || exit 1
+      bot=$(call GET "/users/$slug%5Bbot%5D" "$tok") || die "reading the bot user failed"
+      id=$(printf '%s' "$bot" | jq -r .id)
+      case "$slug:$id" in
+        :* | *: | null:* | *:*[!0-9]*) die "GitHub returned no usable bot name or ID" ;;
+      esac
+      tmp=$(mktemp "$cached.XXXXXX")
+      trap 'rm -f "$tmp"' EXIT
+      printf '%s[bot]\t%s+%s[bot]@users.noreply.github.com\n' "$slug" "$id" "$slug" > "$tmp"
+      mv "$tmp" "$cached"
+    fi
+    cat "$cached"
     ;;
   permissions)
     token > /dev/null
