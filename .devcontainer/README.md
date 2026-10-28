@@ -23,12 +23,12 @@ and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Reb
   refuses edits to `/workspace/LICENSE.md` through Claude's file tools and the shell commands
   Claude Code recognizes as writing files, such as `sed -i` and redirections. It is a best-effort
   layer: it matches command text and paths, so the same call in another form, such as
-  `/usr/bin/gh`, `sh -c`, or a script that opens the file itself, gets past it. The guard is the ruleset on `main` (GitHub setup step
-  3): the bot cannot update `main`, and a pull request needs an approval from someone other than
-  its last pusher. A `SessionStart` hook puts the result of `check-workspace.sh` in every
-  session's context, so an agent knows at once if the clone's first checkout didn't finish. The
-  hook always exits 0: Claude only sees a hook's output when it does. User, project and local
-  settings can't disable a managed hook.
+  `/usr/bin/gh`, `sh -c`, or a script that opens the file itself, gets past it. The guard is the
+  ruleset on `main` (GitHub setup step 3): the bot cannot update `main`, and a pull request needs an
+  approval from someone other than its last pusher. A `SessionStart` hook puts the result of
+  `check-workspace.sh` in every session's context, so an agent knows at once if the clone's first
+  checkout didn't finish. The hook always exits 0: Claude only sees a hook's output when it does.
+  User, project and local settings can't disable a managed hook.
 - No firewall: egress is unrestricted, and auto mode is the control.
 
 `/workspace` is the container's own clone of the repository, in a volume, so nothing the agent
