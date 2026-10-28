@@ -11,6 +11,9 @@ The image is a local base built from `base/` (the apt packages, Chromium's libra
 and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Rebuilding).
 
 - Node 24 LTS, `gh`, `git`, Python 3 (spec-kit), ripgrep, Claude Code (native installer: latest, auto-updating).
+- The Android build toolchain: Temurin JDK 25 (Adoptium's apt repository), and an Android SDK at
+  `$ANDROID_HOME` (`/opt/android-sdk`) with cmdline-tools, one platform and one build-tools
+  release, pinned in `base/Dockerfile`. On arm64, see [Android on arm64](#android-on-arm64).
 - `wtv-app-token`, which mints the app's installation tokens, and a `gh` wrapper at
   `/usr/local/bin/gh` that runs each call with a fresh token. git uses `wtv-app-token` as its only
   credential helper. Tokens are narrowed to contents and pull requests on this repository and
@@ -147,8 +150,24 @@ The agent image's layers are ordered by how often they change, so that most edit
   or the CLI's `--no-cache`: the CLI adds `--pull` to a build without cache, and `--pull` cannot
   resolve the local base. **Rebuild Container** and **Rebuild and Reopen in Container** in the
   agent window build on the local base, like the CLI, so build it with `base/build.sh` first.
-- Big downloads that rarely change, such as phase 1's JDK and Android SDK, go in `base/`. Files
-  that change often are copied last.
+- Big downloads that rarely change, such as the JDK and Android SDK, go in `base/`. Files that
+  change often are copied last.
+
+## Android on arm64
+
+Google ships the SDK build-tools' native binaries (`aapt2`, `aidl`, `zipalign`, `split-select`) for
+linux-x86_64 only, and AGP 9 fetches an x86_64 `aapt2` from Maven. On an arm64 host, such as
+OrbStack on Apple silicon, `base/Dockerfile` replaces those four binaries with the arm64 builds of
+[Commit451/android-arm-build-tools](https://github.com/Commit451/android-arm-build-tools) (MIT,
+built from AOSP source tags), checked against a pinned SHA-256. It also points AGP at that `aapt2`
+with `android.aapt2FromMavenOverride` in `~/.gradle/gradle.properties`, outside the repository, so
+other machines' builds are unaffected. Its release must match the build-tools version; bump both
+together. On amd64, nothing is replaced.
+
+**Fallback**, if that project lags AGP or its binaries break the build: build both images for
+`linux/amd64` (for example with `DOCKER_DEFAULT_PLATFORM=linux/amd64` set for both builds) and run
+them under OrbStack's Rosetta emulation, with the official SDK unchanged. Builds are slower, and
+the whole container is emulated.
 
 ## First run
 
@@ -234,4 +253,3 @@ origin is not an `https://github.com/` URL.
   administration.
 - **Egress.** Unrestricted. Revisit with a hostname allowlist proxy if sessions ever run
   unattended with permissions bypassed.
-- **Build toolchains.** Added in phase 1.
