@@ -193,7 +193,7 @@ The shared core targets the Tizen 5.5 web engine, **Chromium M69**. Compile Java
 missing from M69 are avoided or put behind capability checks with a declared reduction.
 
 The Android shell's `jvmToolchain` and `compileOptions` are pinned to the highest JVM target
-supported by both the project's Android Gradle Plugin and Kotlin, currently **25**. The Gradle
+supported by both the project's Android Gradle Plugin and Kotlin, currently **26**. The Gradle
 daemon (`gradle/gradle-daemon-jvm.properties`) and the dev container's JDK use the same version.
 When upgrading either one, raise the target to the new highest target that both support. Do not
 downgrade to 17 or 21.

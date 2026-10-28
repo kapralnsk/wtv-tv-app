@@ -3,7 +3,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(26)
 }
 
 android {
@@ -27,8 +27,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
+        sourceCompatibility = JavaVersion.VERSION_26
+        targetCompatibility = JavaVersion.VERSION_26
     }
 }
 
