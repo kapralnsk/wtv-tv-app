@@ -26,7 +26,9 @@ and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Reb
   best-effort layer: it matches command text, so the same call in another form, such as
   `/usr/bin/gh` or `sh -c`, gets past it. The guard is the ruleset on `main` (GitHub setup step
   3): the bot cannot update `main`, and a pull request needs an approval from someone other than
-  its last pusher. A `SessionStart` hook puts the result of `check-workspace.sh` in every
+  its last pusher. `Edit` denies keep Claude's file tools off `LICENSE.md` and the locked
+  governance paths (AGENTS.md, Pull requests); they also cover shell output redirects, but not
+  other shell writes, which the governance guard workflow catches. A `SessionStart` hook puts the result of `check-workspace.sh` in every
   session's context, so an agent knows at once if the clone's first checkout didn't finish. The
   hook always exits 0: Claude only sees a hook's output when it does. User, project and local
   settings can't disable a managed hook.
