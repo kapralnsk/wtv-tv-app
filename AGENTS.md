@@ -27,39 +27,8 @@ Principles II and III and are not repeated here.
 
 ## Commands
 
-Do not invent other build, test, lint, or packaging commands. A new one is recorded here when it
-is added. `README.md` (Development) repeats the everyday ones for humans; change both together.
-
-Web core, from `web/`:
-
-| Command                | Does                                                             |
-| ---------------------- | ---------------------------------------------------------------- |
-| `npm ci`               | Install the locked dev dependencies                              |
-| `npm run build`        | Bundle to `web/dist/` for `chrome69`                             |
-| `npm test`             | Vitest; includes the bundle budget and M69 syntax checks         |
-| `npm run typecheck`    | `tsc` over `src/` (ES2018 + DOM libs) and over tests and configs |
-| `npm run lint`         | ESLint; flags Web APIs missing from Chrome 69 in `src/`          |
-| `npm run format:check` | Prettier check; `npm run format` rewrites                        |
-
-Android shell, from the repository root:
-
-| Command                            | Does                                                            |
-| ---------------------------------- | --------------------------------------------------------------- |
-| `./gradlew :app:assembleDebug`     | Build the debug APK                                             |
-| `./gradlew :app:testDebugUnitTest` | JVM unit tests                                                  |
-| `./gradlew spotlessCheck`          | ktlint over `*.kt` and `*.gradle.kts`; `spotlessApply` rewrites |
-
-## Formatting, linting, and strictness
-
-- **TypeScript**: `strict`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
-  `noImplicitOverride`, and `noFallthroughCasesInSwitch`. `src/` compiles against the `ES2018`
-  and `DOM` libs only, so built-ins newer than M69 fail the type check unless a declared
-  capability check and type declaration cover them.
-- **ESLint**: `typescript-eslint` strict type-checked rules, and `eslint-plugin-compat` with
-  browserslist `chrome 69` (`web/package.json`) on `src/`.
-- **Prettier**: defaults with `printWidth` 100.
-- **Kotlin**: the official code style (`kotlin.code.style=official`), enforced by ktlint
-  (`ktlint_official`, `.editorconfig`) through Spotless.
+Build, test, lint, and format commands are in `README.md` (Development). Use only those; a new
+command is recorded there when it is added. Do not invent others.
 
 ## Not decided yet
 
@@ -185,7 +154,9 @@ device, and it is never reported as met on inference.
 
 The shared core targets the Tizen 5.5 web engine, **Chromium M69**. Compile JavaScript to
 `chrome69` (esbuild/Vite `build.target`, or browserslist `chrome 69`). CSS features and Web APIs
-missing from M69 are avoided or put behind capability checks with a declared reduction.
+missing from M69 are avoided or put behind capability checks with a declared reduction. `src/`
+type-checks against the `ES2018` and `DOM` libs only, and ESLint's compat plugin flags Web APIs
+missing from Chrome 69, so a newer API needs that capability check and its own type declaration.
 
 The Android shell's `jvmToolchain` and `compileOptions` are pinned to the highest JVM target
 supported by both the project's Android Gradle Plugin and Kotlin, currently **26**. The Gradle
@@ -196,6 +167,8 @@ downgrade to 17 or 21.
 ## Code style
 
 - No narrating comments. Comment only when the _why_ is non-obvious from the code.
+- TypeScript strictness, lint, and formatting are set in `web/`'s configs; Kotlin style in
+  `.editorconfig` (ktlint through Spotless). The README's commands check them.
 
 ## Communication
 
