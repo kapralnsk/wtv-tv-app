@@ -164,6 +164,10 @@ with `android.aapt2FromMavenOverride` in `~/.gradle/gradle.properties`, outside 
 other machines' builds are unaffected. Its release must match the build-tools version; bump both
 together. On amd64, nothing is replaced.
 
+That file lives in the image, so a volume mounted over `~/.gradle` (for example, to keep Gradle's
+caches across rebuilds) hides it, and Android builds then fail with `exec format error`. Whoever
+adds such a volume has to carry the override along.
+
 **Fallback**, if that project lags AGP or its binaries break the build: build both images for
 `linux/amd64` (for example with `DOCKER_DEFAULT_PLATFORM=linux/amd64` set for both builds) and run
 them under OrbStack's Rosetta emulation, with the official SDK unchanged. Builds are slower, and
