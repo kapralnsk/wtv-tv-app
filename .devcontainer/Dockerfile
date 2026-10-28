@@ -1,4 +1,4 @@
-FROM wtv-agent-base:1
+FROM wtv-agent-base:2
 
 USER node
 # The native installer keeps Claude Code updatable by node; an npm global install is root-owned.
