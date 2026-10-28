@@ -33,6 +33,8 @@ ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
 # Held at cmdline-tools 22.0: from 23.0 on, sdkmanager is a shim over the native `android` CLI,
 # which Google ships for linux-x86_64 only, so it fails on arm64. 22.0's sdkmanager is still Java.
+# Bump it once Google ships a linux-arm64 `android`. If 22.0 can't install a package before then,
+# leave the package to AGP's on-demand install (also Java), or use the amd64 fallback in README.md.
 ARG CMDLINE_TOOLS_BUILD=15859902
 ARG CMDLINE_TOOLS_SHA1=040d3996a65543d22ec4bf73e4c37aa37a8d4af4
 ARG ANDROID_PLATFORM=android-36
