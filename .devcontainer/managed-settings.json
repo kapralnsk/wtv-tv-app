@@ -7,7 +7,8 @@
       "Bash(gh pr review *)",
       "Bash(gh api *pulls/*/merge*)",
       "Bash(gh api *mergePullRequest*)",
-      "Bash(gh api *APPROVE*)"
+      "Bash(gh api *APPROVE*)",
+      "Edit(//workspace/LICENSE.md)"
     ]
   },
   "hooks": {
