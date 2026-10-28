@@ -29,10 +29,12 @@ RUN curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public -o /
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Owned by node, so that AGP can install a missing SDK package on demand.
+# Held at cmdline-tools 22.0: from 23.0 on, sdkmanager is a shim over the native `android` CLI,
+# which Google ships for linux-x86_64 only, so it fails on arm64. 22.0's sdkmanager is still Java.
 ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-ARG CMDLINE_TOOLS_BUILD=16111833
-ARG CMDLINE_TOOLS_SHA1=e025545c62a8e64c7559119566a569fb1dec5f60
+ARG CMDLINE_TOOLS_BUILD=15859902
+ARG CMDLINE_TOOLS_SHA1=040d3996a65543d22ec4bf73e4c37aa37a8d4af4
 ARG ANDROID_PLATFORM=android-36
 ARG ANDROID_BUILD_TOOLS=36.1.0
 RUN curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_BUILD}_latest.zip" -o /tmp/cmdline-tools.zip \
