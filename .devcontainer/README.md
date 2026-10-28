@@ -170,10 +170,16 @@ Gradle's caches across rebuilds) breaks it. A bind mount hides it, and Android b
 after the next build-tools bump the override points at a missing `aapt2`. Whoever adds such a mount
 has to carry the override along.
 
-**Fallback**, if that project lags AGP or its binaries break the build: build both images for
-`linux/amd64` (for example with `DOCKER_DEFAULT_PLATFORM=linux/amd64` set for both builds) and run
-them under OrbStack's Rosetta emulation, with the official SDK unchanged. Builds are slower, and
-the whole container is emulated.
+`base/Dockerfile` also holds cmdline-tools at 22.0. From 23.0 on, `sdkmanager` forwards to a
+native `android` CLI that Google ships for linux-x86_64 only, so it fails on arm64; 22.0's
+`sdkmanager` is still Java. Don't bump it on arm64. 22.0 is frozen, so if a future SDK package needs
+a newer `sdkmanager`, use the fallback below.
+
+**Fallback**, if that project lags AGP, its binaries break the build, or the cmdline-tools hold
+blocks a needed package: build both images for `linux/amd64` (for example with
+`DOCKER_DEFAULT_PLATFORM=linux/amd64` set for both builds) and run them under OrbStack's Rosetta
+emulation. There the official SDK works unchanged, and the cmdline-tools pin can be bumped. Builds
+are slower, and the whole container is emulated.
 
 ## First run
 
