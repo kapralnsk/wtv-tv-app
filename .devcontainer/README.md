@@ -19,9 +19,11 @@ and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Reb
 - A virtual desktop (desktop-lite) with noVNC on `127.0.0.1:6080`, used only by headed sessions.
 - Managed settings (`managed-settings.json`, installed at `/etc/claude-code/`): sessions start in
   auto mode and bypass-permissions mode is disabled. A deny list refuses the usual ways to merge
-  or approve a pull request: `gh pr merge`, `gh pr review`, and their `gh api` forms. It is a
-  best-effort layer: it matches command text, so the same call in another form, such as
-  `/usr/bin/gh` or `sh -c`, gets past it. The guard is the ruleset on `main` (GitHub setup step
+  or approve a pull request: `gh pr merge`, `gh pr review`, and their `gh api` forms. It also
+  refuses edits to `/workspace/LICENSE.md` through Claude's file tools and the shell commands
+  Claude Code recognizes as writing files, such as `sed -i` and redirections. It is a best-effort
+  layer: it matches command text and paths, so the same call in another form, such as
+  `/usr/bin/gh`, `sh -c`, or a script that opens the file itself, gets past it. The guard is the ruleset on `main` (GitHub setup step
   3): the bot cannot update `main`, and a pull request needs an approval from someone other than
   its last pusher. A `SessionStart` hook puts the result of `check-workspace.sh` in every
   session's context, so an agent knows at once if the clone's first checkout didn't finish. The
