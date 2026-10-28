@@ -28,7 +28,7 @@ Principles II and III and are not repeated here.
 ## Commands
 
 Do not invent other build, test, lint, or packaging commands. A new one is recorded here when it
-is added.
+is added. `README.md` (Development) repeats the everyday ones for humans; change both together.
 
 Web core, from `web/`:
 

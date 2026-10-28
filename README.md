@@ -24,8 +24,30 @@ The project is spec-driven. Start with:
   [`.devcontainer/README.md`](.devcontainer/README.md), which covers setup, launch and rebuilds.
 - **Workflow:** every feature goes spec → plan → tasks → implementation through the spec-kit
   commands listed in [`AGENTS.md`](AGENTS.md#workflow).
-- **Build, test and lint:** not set up yet; issue #10 adds the web core and Android toolchains and
-  their commands.
+- **Prerequisites** outside the dev container: Node 24, JDK 26, and an Android SDK with
+  `platforms;android-36` and `build-tools;36.1.0`. On arm64 Linux, see the dev container README for
+  the aapt2 override that Android builds need.
+
+Web core, from `web/`:
+
+```sh
+npm ci                 # install the locked dependencies
+npm run build          # bundle to web/dist/ for Chromium 69
+npm test               # unit tests, plus the bundle size and syntax checks
+npm run typecheck
+npm run lint
+npm run format         # or format:check
+```
+
+Android shell, from the repository root:
+
+```sh
+./gradlew :app:assembleDebug        # debug APK
+./gradlew :app:testDebugUnitTest    # JVM unit tests
+./gradlew spotlessApply             # format Kotlin; spotlessCheck to check only
+```
+
+Installing to a device or emulator has no agreed command yet.
 
 ## Platform research
 
