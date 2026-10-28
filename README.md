@@ -1,37 +1,25 @@
 # wtv-google-tv
 
-A Google TV client for [w.tv](https://w.tv) — a game streaming platform with live chat.
+A TV client for [w.tv](https://w.tv), a live streaming platform with chat.
 
-**Target device:** Chromecast with Google TV (4th gen) · D-pad only · 3 m viewing distance
+**Targets:** Chromecast with Google TV (Android 12+) and Samsung Tizen 5.5+ (2020 models). D-pad
+only, 3 m viewing distance.
 
-## Features
+## Structure
 
-- Watch live streams with full video playback (HLS via Media3)
-- Switch stream quality on the fly
-- Live chat panel alongside the video (IVS WebSocket)
+One shared TypeScript web application holds all UI and logic. Each platform is a thin shell around
+it: an Android APK (a WebView over a Media3 video surface) and a Tizen web package (`.wgt`, using
+AVPlay).
 
-## Tech stack
+The project is spec-driven. Start with:
 
-- Kotlin + Jetpack Compose for TV (`androidx.tv`)
-- Media3 / ExoPlayer for HLS playback
-- Retrofit + kotlinx.serialization for REST
-- Native `OkHttp` WebSocket for IVS chat
-- MVVM with `ViewModel` + `StateFlow`
-
-## Development
-
-Open in Android Studio (Hedgehog or later). No API keys required — all w.tv endpoints are unauthenticated.
-
-```
-./gradlew assembleDebug
-```
-
-Deploy to a Chromecast 4th gen or an Android TV emulator (API 31+) via `Run` in Android Studio.
-
-## API research
-
-The `capture-specs/` directory contains Node.js / Playwright scripts used to reverse-engineer the network API. Captured findings live in `docs/`.
+- [`.specify/memory/constitution.md`](.specify/memory/constitution.md): the principles that
+  govern every change.
+- [`AGENTS.md`](AGENTS.md): layout, workflow, standing limits and budgets, and the build
+  commands once they are set up.
 
 ## UI reference
 
-Primary: [SmartTwitchTV](https://github.com/fgl27/smarttwitchtv) — a Smart TV Twitch client. Its patterns for focus management, remote control navigation, overlay layout, and quality picker take priority for all TV-specific UX decisions.
+Primary: [SmartTwitchTV](https://github.com/fgl27/smarttwitchtv), a Smart TV Twitch client. Its
+patterns for focus management, remote navigation, overlay layout, and the quality picker take
+priority for TV-specific UX decisions.
