@@ -23,3 +23,8 @@ app/build
 
 # Local review findings (docs/answering-reviews.md)
 /pr-*-review-findings.md
+
+# Web core
+web/node_modules
+web/dist
+*.tsbuildinfo

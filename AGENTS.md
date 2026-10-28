@@ -25,14 +25,13 @@ Principles II and III and are not repeated here.
 - The `web-app-port` branch (closed PR #1) is a mechanical port of the retired app. It is not a
   starting point.
 
+## Commands
+
+Build, test, lint, and format commands are in `README.md` (Development). Use only those; a new
+command is recorded there when it is added. Do not invent others.
+
 ## Not decided yet
 
-The project is in SDD setup. Do not invent build, test, lint, or packaging commands. Each item
-below is recorded here once it is decided.
-
-- **Commands**: phase 1 establishes them, for both the web core and the Android Gradle build
-  (including the JVM unit test command).
-- **Formatters, linters, TypeScript strictness, Kotlin style conventions**: added with phase 1.
 - **Player bridge**: the mechanism connecting the TypeScript bridge client to the Kotlin backend.
   The first player feature's plan chooses it in its research phase.
 
@@ -155,15 +154,21 @@ device, and it is never reported as met on inference.
 
 The shared core targets the Tizen 5.5 web engine, **Chromium M69**. Compile JavaScript to
 `chrome69` (esbuild/Vite `build.target`, or browserslist `chrome 69`). CSS features and Web APIs
-missing from M69 are avoided or put behind capability checks with a declared reduction.
+missing from M69 are avoided or put behind capability checks with a declared reduction. `src/`
+type-checks against the `ES2018` and `DOM` libs only, and ESLint's compat plugin flags Web APIs
+missing from Chrome 69, so a newer API needs that capability check and its own type declaration.
 
 The Android shell's `jvmToolchain` and `compileOptions` are pinned to the highest JVM target
-supported by both the project's Android Gradle Plugin and Kotlin. When upgrading either one,
-raise the target to the new highest target that both support. Do not downgrade to 17 or 21.
+supported by both the project's Android Gradle Plugin and Kotlin, currently **26**. The Gradle
+daemon (`gradle/gradle-daemon-jvm.properties`) and the dev container's JDK use the same version.
+When upgrading either one, raise the target to the new highest target that both support. Do not
+downgrade to 17 or 21.
 
 ## Code style
 
 - No narrating comments. Comment only when the _why_ is non-obvious from the code.
+- TypeScript strictness, lint, and formatting are set in `web/`'s configs; Kotlin style in
+  `.editorconfig` (ktlint through Spotless). The README's commands check them.
 
 ## Communication
 
