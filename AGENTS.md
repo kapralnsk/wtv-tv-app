@@ -30,14 +30,44 @@ Phase 1 cleanup tags the retired code as `retired-native`, deletes it and `web/d
 `main`, and updates this section. After that, consult retired code only through the tag
 (`git show retired-native:<path>`).
 
+## Commands
+
+Do not invent other build, test, lint, or packaging commands. A new one is recorded here when it
+is added.
+
+Web core, from `web/`:
+
+| Command                | Does                                                             |
+| ---------------------- | ---------------------------------------------------------------- |
+| `npm ci`               | Install the locked dev dependencies                              |
+| `npm run build`        | Bundle to `web/dist/` for `chrome69`                             |
+| `npm test`             | Vitest; includes the bundle budget and M69 syntax checks         |
+| `npm run typecheck`    | `tsc` over `src/` (ES2018 + DOM libs) and over tests and configs |
+| `npm run lint`         | ESLint; flags Web APIs missing from Chrome 69 in `src/`          |
+| `npm run format:check` | Prettier check; `npm run format` rewrites                        |
+
+Android shell, from the repository root:
+
+| Command                            | Does                                                            |
+| ---------------------------------- | --------------------------------------------------------------- |
+| `./gradlew :app:assembleDebug`     | Build the debug APK                                             |
+| `./gradlew :app:testDebugUnitTest` | JVM unit tests                                                  |
+| `./gradlew spotlessCheck`          | ktlint over `*.kt` and `*.gradle.kts`; `spotlessApply` rewrites |
+
+## Formatting, linting, and strictness
+
+- **TypeScript**: `strict`, plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
+  `noImplicitOverride`, and `noFallthroughCasesInSwitch`. `src/` compiles against the `ES2018`
+  and `DOM` libs only, so built-ins newer than M69 fail the type check unless a declared
+  capability check and type declaration cover them.
+- **ESLint**: `typescript-eslint` strict type-checked rules, and `eslint-plugin-compat` with
+  browserslist `chrome 69` (`web/package.json`) on `src/`.
+- **Prettier**: defaults with `printWidth` 100.
+- **Kotlin**: the official code style (`kotlin.code.style=official`), enforced by ktlint
+  (`ktlint_official`, `.editorconfig`) through Spotless.
+
 ## Not decided yet
 
-The project is in SDD setup. Do not invent build, test, lint, or packaging commands. Each item
-below is recorded here once it is decided.
-
-- **Commands**: phase 1 establishes them, for both the web core and the Android Gradle build
-  (including the JVM unit test command).
-- **Formatters, linters, TypeScript strictness, Kotlin style conventions**: added with phase 1.
 - **Player bridge**: the mechanism connecting the TypeScript bridge client to the Kotlin backend.
   The first player feature's plan chooses it in its research phase.
 
@@ -163,8 +193,10 @@ The shared core targets the Tizen 5.5 web engine, **Chromium M69**. Compile Java
 missing from M69 are avoided or put behind capability checks with a declared reduction.
 
 The Android shell's `jvmToolchain` and `compileOptions` are pinned to the highest JVM target
-supported by both the project's Android Gradle Plugin and Kotlin. When upgrading either one,
-raise the target to the new highest target that both support. Do not downgrade to 17 or 21.
+supported by both the project's Android Gradle Plugin and Kotlin, currently **25**. The Gradle
+daemon (`gradle/gradle-daemon-jvm.properties`) and the dev container's JDK use the same version.
+When upgrading either one, raise the target to the new highest target that both support. Do not
+downgrade to 17 or 21.
 
 ## Code style
 

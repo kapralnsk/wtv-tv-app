@@ -1,0 +1,28 @@
+{
+  "name": "wtv-web",
+  "private": true,
+  "type": "module",
+  "browserslist": [
+    "chrome 69"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "acorn": "8.19.0",
+    "eslint": "10.13.0",
+    "eslint-plugin-compat": "7.0.2",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}
