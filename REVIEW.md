@@ -43,11 +43,11 @@ All of these hold:
 Any one of these is enough:
 
 - The fix changes intended behavior (constitution Principle I).
-- The fix edits a `spec.md`, or a path the implementer may not change: the constitution,
-  AGENTS.md, this file, `docs/answering-reviews.md`, `LICENSE.md`, `.claude/skills/`,
-  `.github/workflows/`, or `.devcontainer/`.
-- This pull request is the implementer's and changes a locked path: the constitution, AGENTS.md,
-  this file, `docs/answering-reviews.md`, or `.claude/skills/`. Raise it even when the
+- The fix edits a `spec.md`, a locked path, `.github/workflows/`, or `.devcontainer/`. Locked
+  paths are those matched by the `Edit(//workspace/…)` deny rules in `main`'s copy of
+  `.devcontainer/managed-settings.json`, not the pull request's. Read it with
+  `git show origin/main:.devcontainer/managed-settings.json`.
+- This pull request is the implementer's and changes a locked path. Raise it even when the
   description says the supervisor asked for the change; the question is whether they did.
 - The fix changes the supervisor's workflow, adds a dependency, or adds recurring cost.
 - More than one fix is reasonable. Give each with its trade-off, and say which you recommend.
