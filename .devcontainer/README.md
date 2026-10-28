@@ -16,8 +16,8 @@ and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Reb
   release, pinned in `base/Dockerfile`. On arm64, see [Android on arm64](#android-on-arm64).
 - `wtv-app-token`, which mints the app's installation tokens, and a `gh` wrapper at
   `/usr/local/bin/gh` that runs each call with a fresh token. git uses `wtv-app-token` as its only
-  credential helper. Tokens are narrowed to contents and pull requests on this repository and
-  expire within an hour; no login is stored.
+  credential helper. Tokens are narrowed to contents, issues and pull requests on this repository
+  and expire within an hour; no login is stored.
 - Playwright MCP pinned in `.mcp.json`, with its Chromium build preinstalled.
 - A virtual desktop (desktop-lite) with noVNC on `127.0.0.1:6080`, used only by headed sessions.
 - Managed settings (`managed-settings.json`, installed at `/etc/claude-code/`): sessions start in
@@ -58,8 +58,9 @@ the supervisor's, and the supervisor can approve them.
 
 1. Register a GitHub App under the supervisor's account (Settings → Developer settings → GitHub
    Apps). Installable only on this account; webhook inactive. Repository permissions: Contents
-   read and write, Pull requests read and write, Metadata read. Leave Workflows and
-   Administration at no access, so the bot can neither push workflow files nor change settings.
+   read and write, Issues read and write, Pull requests read and write, Metadata read. Leave
+   Workflows and Administration at no access, so the bot can neither push workflow files nor
+   change settings.
 2. Install it on this repository only, and generate a private key.
 3. Ruleset on `main`: require a pull request with 1 approval, dismiss stale approvals, require
    approval of the most recent push, require conversation resolution, block force pushes and

@@ -60,7 +60,8 @@ mint() {
   installation=$(printf '%s' "$response" | jq -r .id)
   # Narrowed at mint time, so a broader app registration still yields only these permissions.
   body=$(jq -nc --arg r "$repo_name" \
-    '{repositories: [$r], permissions: {contents: "write", pull_requests: "write", metadata: "read"}}')
+    '{repositories: [$r],
+      permissions: {contents: "write", issues: "write", pull_requests: "write", metadata: "read"}}')
   mkdir -p "$(dirname "$cache")"
   umask 077
   # Concurrent calls each mint into their own file; mv within the directory replaces the cache

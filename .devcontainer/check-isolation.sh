@@ -20,11 +20,11 @@ else
 fi
 
 if scope=$(wtv-app-token permissions 2>&1); then
-  want='{"permissions":{"contents":"write","metadata":"read","pull_requests":"write"},"repositories":["'"$WTV_REPO"'"]}'
+  want='{"permissions":{"contents":"write","issues":"write","metadata":"read","pull_requests":"write"},"repositories":["'"$WTV_REPO"'"]}'
   if [ "$(printf '%s' "$scope" | jq -cS .)" = "$(printf '%s' "$want" | jq -cS .)" ]; then
-    pass "app token is limited to contents and pull requests on one repository"
+    pass "app token is limited to contents, issues and pull requests on one repository"
   else
-    fail "app token scope differs from contents/pull_requests write on one repository: $scope"
+    fail "app token scope differs from contents/issues/pull_requests write on one repository: $scope"
   fi
 else
   fail "no app token: $scope"
