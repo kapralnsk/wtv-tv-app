@@ -25,7 +25,7 @@ RUN curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public -o /
   && chmod go+r /etc/apt/keyrings/adoptium.asc \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list \
   && apt-get update \
-  && apt-get install -y --no-install-recommends temurin-25-jdk \
+  && apt-get install -y --no-install-recommends temurin-26-jdk \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Owned by node, so that AGP can install a missing SDK package on demand.

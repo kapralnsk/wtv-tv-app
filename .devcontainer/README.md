@@ -11,7 +11,7 @@ The image is a local base built from `base/` (the apt packages, Chromium's libra
 and the `no-gpg` feature), with the agent layers of `Dockerfile` on top (see Rebuilding).
 
 - Node 24 LTS, `gh`, `git`, Python 3 (spec-kit), ripgrep, Claude Code (native installer: latest, auto-updating).
-- The Android build toolchain: Temurin JDK 25 (Adoptium's apt repository), and an Android SDK at
+- The Android build toolchain: Temurin JDK 26 (Adoptium's apt repository), and an Android SDK at
   `$ANDROID_HOME` (`/opt/android-sdk`) with cmdline-tools, one platform and one build-tools
   release, pinned in `base/Dockerfile`. On arm64, see [Android on arm64](#android-on-arm64).
 - `wtv-app-token`, which mints the app's installation tokens, and a `gh` wrapper at
