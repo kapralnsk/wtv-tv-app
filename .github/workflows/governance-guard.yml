@@ -44,7 +44,7 @@ jobs:
           fi
           # Only exact paths and a trailing /** are understood; any other glob fails the job
           # rather than silently matching nothing.
-          if printf '%s\n' "$patterns" | sed 's#/\*\*$##' | grep -qF '*'; then
+          if printf '%s\n' "$patterns" | sed 's#/\*\*$##' | grep -q '[*?[]'; then
             echo "::error::A locked-path rule uses a glob this guard doesn't support:"
             printf '%s\n' "$patterns"
             exit 1
