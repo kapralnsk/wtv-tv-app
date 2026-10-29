@@ -1,0 +1,66 @@
+# Fails an implementer pull request that changes a locked path (AGENTS.md, Pull requests). The
+# supervisor makes it a required check on main and merges past it when they asked for the change.
+# It reads the file list from the API and never checks out pull request code.
+name: Governance guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+env:
+  IMPLEMENTER: mechakapral[bot]
+
+jobs:
+  # Runs for every pull request, so that as a required check it reports a result on the
+  # supervisor's own pull requests too.
+  locked-paths:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check the changed files against the locked paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ "$AUTHOR" != "$IMPLEMENTER" ]; then
+            echo "Opened by $AUTHOR, not the implementer: nothing to check."
+            exit 0
+          fi
+          # The locked paths are the Edit deny rules of Claude's managed settings, read from the
+          # base branch so that a pull request can't unlock a path it changes.
+          settings=$(gh api -H "Accept: application/vnd.github.raw" \
+            "repos/$GITHUB_REPOSITORY/contents/.devcontainer/managed-settings.json?ref=$BASE")
+          patterns=$(printf '%s' "$settings" | jq -r '.permissions.deny[]
+            | select(startswith("Edit(//workspace/")) | ltrimstr("Edit(//workspace/") | rtrimstr(")")')
+          if [ -z "$patterns" ]; then
+            echo "::error::The base branch's managed settings have no Edit(//workspace/…) deny rules."
+            exit 1
+          fi
+          # Only exact paths and a trailing /** are understood; any other glob fails the job
+          # rather than silently matching nothing.
+          if printf '%s\n' "$patterns" | sed 's#/\*\*$##' | grep -q '[*?[]'; then
+            echo "::error::A locked-path rule uses a glob this guard doesn't support:"
+            printf '%s\n' "$patterns"
+            exit 1
+          fi
+          # Kept apart from the matching below, so that an API failure fails the job instead of
+          # reading as "no files". A rename counts under its old path too.
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)')
+          locked=$(jq -rn --arg files "$files" --arg patterns "$patterns" '
+            ($patterns | split("\n") | map(select(length > 0))) as $rules
+            | $files | split("\n") | map(select(length > 0)) | unique[]
+            | select(. as $f | any($rules[]; . as $r
+                | if $r | endswith("/**") then $f | startswith($r[:-2]) else $f == $r end))')
+          if [ -n "$locked" ]; then
+            echo "::error::This implementer pull request changes locked paths. Only the supervisor merges past this check, when they asked for the change."
+            printf '%s\n' "$locked"
+            exit 1
+          fi
+          echo "No locked path changed."

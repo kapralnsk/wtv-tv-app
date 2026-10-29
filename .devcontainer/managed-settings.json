@@ -8,7 +8,12 @@
       "Bash(gh api *pulls/*/merge*)",
       "Bash(gh api *mergePullRequest*)",
       "Bash(gh api *APPROVE*)",
-      "Edit(//workspace/LICENSE.md)"
+      "Edit(//workspace/LICENSE.md)",
+      "Edit(//workspace/.specify/memory/constitution.md)",
+      "Edit(//workspace/AGENTS.md)",
+      "Edit(//workspace/REVIEW.md)",
+      "Edit(//workspace/docs/answering-reviews.md)",
+      "Edit(//workspace/.claude/skills/**)"
     ]
   },
   "hooks": {
