@@ -25,7 +25,8 @@ earlier phase's spec, it edits that `spec.md` and re-runs its plan and tasks (AG
 
 - **Language.** UI text comes in English and Russian, picked by the device language, with English
   for any other. Numbers and times follow the UI language. w.tv content (titles, chat, category
-  names, tags) is shown as delivered, and requests send the matching `user_lang`. For plans:
+  names, tags) is shown as delivered, and requests send the matching `user_lang`. UI text lives in
+  one pack per language, so another language means adding a pack. For plans:
   Chromium 69 has `Intl.PluralRules`, but not compact number formatting or
   `Intl.RelativeTimeFormat`.
 - **Each spec declares** what the constitution requires of it: every screen's focusable elements,
@@ -72,7 +73,7 @@ both shells and chooses the player bridge (AGENTS.md, Not decided yet).
 
 **Scope: `live-viewing`**
 
-- The channel is fixed in the build. The retired app used `dunduk`.
+- The channel is fixed in the build: use the `FIOLOCHKA` channel.
 - Full-screen video, as close to live as the stream allows without stalling.
 - Waking the TV or reopening the app brings the stream back at the live edge, in the quality the
   user chose (Every phase).
@@ -81,26 +82,33 @@ both shells and chooses the player bridge (AGENTS.md, Not decided yet).
   viewer count. It shows for 5 s when playback starts and on request: OK, LEFT, RIGHT or UP opens
   it. Opening it refreshes the viewer count, title and category, and time live ticks while it
   shows. It holds the player controls, per SmartTwitchTV's player panel.
-- Quality picker: Auto plus each rendition the stream offers (1080p60 down to 160p30 in the
-  capture), with the current choice marked.
+- Quality picker: Auto plus the renditions this stream offers, read from its playlist each time it
+  starts, with the current choice marked. Streams differ: not every one offers the highest or the
+  lowest quality (the capture had 1080p60 down to 160p30).
 - Screen off (audio only), per SmartTwitchTV's "Screen off (Audio only)": a black layer covers the
   screen while the stream plays on unchanged, in the same quality. Any button brings the picture
   back and still does its usual action, BACK included. The screen stays awake, as during
   playback, so the TV's screensaver doesn't start.
+- On the supervisor's TV, a Sony KDL-32WD603 with the Chromecast plugged in, SmartTwitchTV's
+  screen off makes the TV switch its backlight off completely. This app keeps that. That TV is
+  likely doing it on its own, so the first step is finding what triggers it: the black layer
+  alone, or the video signal stopping.
 - Media keys: play/pause pauses and resumes, and resuming jumps to the live edge; stop closes the
   player.
-- When the stream ends, per SmartTwitchTV, a "<channel> has ended" dialog counts down 6 s. It
-  offers to stay on the stream, with the app checking periodically until it is live again, or to
-  leave. With nothing behind the player in this phase, the countdown ends by staying.
-- Failures: channel offline at launch, network loss, playback error.
+- When the stream ends, or the channel is offline at launch, a dialog says "<channel> has ended" or
+  "<channel> is offline" and counts down 6 s, per SmartTwitchTV. It offers to stay on the stream,
+  with the app checking periodically until it is live again, or to leave. Both cases use the same
+  dialog and logic. With nothing behind the player in this phase, the countdown ends by staying.
+- Failures: network loss, playback error.
 
 **Scope: `live-chat`**
 
-- Chat sits over the video on the right, full height and about a quarter of the width:
-  SmartTwitchTV's default. Overlay controls move it, resize it and switch to side by side, as in
+- Chat sits over the video on the right, full height and 20% of the width, as in SmartTwitchTV's
+  default placement. Overlay controls move it, resize it and switch to side by side, as in
   SmartTwitchTV. DOWN, or a control in the info overlay, shows and hides it. These choices survive
   a restart.
-- Chat opens with recent history, then shows live messages, undelayed.
+- Chat opens with recent history, then shows live messages, undelayed. Where possible, a line
+  reading "Connected to <channel> chat" marks where history ends and live messages begin.
 - Each message shows its time, the sender's nickname and the text, with w.tv emotes drawn as
   images; animated emotes animate. Nickname colors are random per user but the same for every
   message from that user, from a palette that meets the AGENTS.md contrast thresholds. The
@@ -209,7 +217,8 @@ player adapter gains pause, seek, position and duration on both backends.
   to 1 h), and resets after 1 s without presses.
 - Media keys: play/pause pauses and resumes, stop closes the player, next and previous jump 30 s,
   and fast-forward and rewind seek like RIGHT and LEFT.
-- When w.tv has chat replay, the VOD plays with it, as in SmartTwitchTV.
+- An earlier observation suggests w.tv has no chat replay, so verify that first. If w.tv has none,
+  the VOD player has no chat panel. If it has, the VOD plays with it, as in SmartTwitchTV.
 - At the end, the end dialog offers replay and the channel page, counting down 6 s to closing the
   player.
 - A live stream's end dialog gains an option to open the broadcast as a VOD, when w.tv has one.
@@ -271,8 +280,9 @@ the session token, its lifetime and refresh. Only the supervisor can log in, in 
 - Tokens are never logged or put in URLs or error reports (constitution, Secrets). The core keeps
   them, since a shell's scope has no storage (Principle II).
 
-**Risk.** If signing in needs a captcha or a browser-only step the app cannot host, the supervisor
-decides between a reduced flow and follows kept on the device without an account.
+**Risk.** The whole phase may be cancelled if w.tv has no TV-friendly way to sign in, for example
+if signing in needs a captcha or a browser-only step the app cannot host. The supervisor makes
+that call, and may instead choose a reduced flow or follows kept on the device without an account.
 
 **Platform knowledge.** Nothing captured. To observe, signed in: followed channels (fields, live
 state, paging); follow and unfollow requests; what else changes for a signed-in client.
@@ -281,10 +291,13 @@ state, paging); follow and unfollow requests; what else changes for a signed-in 
 
 Out of every phase until the supervisor adds them. Specs cite this list in Out of Scope.
 
-- Sending chat messages, chat badges, moderation.
-- Clips, multistream, picture-in-picture.
-- A settings screen, and preferences kept beyond what a phase states.
-- Watch history, and offering to resume a VOD the user opens again later. The VOD playing when the
-  app closed is still restored (Every phase).
-- Notifications, Google TV home-screen rows, voice search, deep links.
-- Languages other than English and Russian.
+- Out of scope for a TV app: sending chat messages, chat badges, moderation.
+- Out of scope: notifications, Google TV home-screen rows, voice search, deep links.
+- Out of scope, and unlikely to be picked up: clips, multistream, picture-in-picture.
+- Out of scope for now, and likely to be picked up later:
+  - a settings screen, and preferences kept beyond what a phase states
+  - resuming a VOD the user opens again later from where they stopped watching. The VOD playing
+    when the app closed is still restored (Every phase).
+- Not planned: watch history.
+- Languages other than English and Russian: adding one should only mean adding a language pack,
+  since the language support is in place from Phase 1 (Every phase).
