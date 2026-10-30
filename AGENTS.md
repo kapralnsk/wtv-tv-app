@@ -52,17 +52,26 @@ next phase starts then. The roadmap's device checks and its Status column stay t
 
 ### Picking up the run
 
-Every session works out where the run stands from the repository and GitHub, not from memory, and
-takes the first of these that applies:
+A router session, running on Opus, drives the run and does no repository work itself. Each pass,
+it works out where the run stands from the repository and GitHub, not from memory, takes the first
+of these that applies, and starts one subagent for it at high effort, on the model shown:
 
 1. An open implementer pull request: answer new review findings, request a re-review when its
-   rules allow, or merge it once approved (Pull requests).
-2. A spec whose `tasks.md` has unchecked tasks: continue its implementation.
-3. The next roadmap spec, in roadmap order, that has no directory under `specs/`: specify it.
-4. All Phase 1 to 4 specs merged: cut the release (Releases).
+   rules allow, or merge it once approved (Pull requests). `opus`, except `sonnet` for a Phase 2
+   to 4 implementation pull request with no open handoff (Handoffs).
+2. A spec whose `tasks.md` has unchecked tasks: implement the next group of them (Pull requests
+   per spec). `opus` in Phase 1, `sonnet` in Phases 2 to 4.
+3. The next roadmap spec, in roadmap order, that has no directory under `specs/`: take it from
+   `/speckit-specify` through `/speckit-analyze` in its spec pull request. `opus`.
+4. All Phase 1 to 4 specs merged: cut the release (Releases). `opus`.
+
+`opus` is Claude Opus 5.5 and `sonnet` is Claude Sonnet 5.5. The router tells each subagent which
+of the two it runs on, since a Sonnet pass works under the Handoffs rules. It waits for the
+subagent's report before the next pass.
 
 Skip work that an open issue assigned to the supervisor blocks (Blocked work), and act on the
-supervisor's comments on those issues.
+supervisor's comments on those issues. The router stops when the release exists, or when every
+remaining step is blocked.
 
 ## Workflow
 
@@ -70,6 +79,32 @@ New feature: `/speckit-specify` → `/speckit-clarify` (if underspecified) → `
 `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`.
 
 Branches are cut from `experiment/autonomy`, and pull requests target it.
+
+### Pull requests per spec
+
+Each spec reaches `experiment/autonomy` in two stages:
+
+1. **Spec pull request**, from `/speckit-specify` through `/speckit-analyze`: `spec.md`, `plan.md`,
+   `tasks.md` and the plan's other artifacts, including the observations they rely on. Its review
+   includes the roadmap check (`REVIEW.md`, Spec changes).
+2. **Implementation pull requests**, once the spec pull request is merged. Each covers a group of
+   tasks small enough to review in one sitting (constitution Principle VII), usually one phase or
+   user story of `tasks.md`, and checks those tasks off. Open it as a draft when its work starts.
+
+A spec change made during implementation goes in that implementation pull request, which then says
+it edits `spec.md`.
+
+### Handoffs
+
+A Sonnet pass makes no agent decisions and defers no `[fix]` finding. When it meets one, such as a
+discovery that changes intended behavior, or a `[fix]` it believes is wrong or meets an
+`[escalate]` condition, it stops. It commits and pushes its work so far, and posts a comment on the
+implementation pull request that starts with `Handoff:`. The comment states the question, what it
+found, and the finding it concerns, if any. Then it ends the pass.
+
+The next pass on that pull request runs on Opus. It decides the question, recording an agent
+decision and editing the spec as constitution Principle I requires, or answers the finding. Then it
+replies `Handoff resolved:` with the decision and the commit. Later passes go back to Sonnet.
 
 Spec directories map to user-facing capabilities (live viewing, VOD viewing, chat, browse), not
 to phases or components.
