@@ -104,7 +104,11 @@ jobs:
         run: |
           tizen certificate -a ci -p ci-throwaway -c US -ct CI -o wtv -n ci -e ci@example.invalid -f ci
           tizen security-profiles add -n ci -a "$HOME/tizen-studio-data/keystore/author/ci.p12" -p ci-throwaway
+          tizen cli-config "profiles.path=$HOME/tizen-studio-data/profile/profiles.xml"
           mkdir "$RUNNER_TEMP/wgt" "$RUNNER_TEMP/signed"
           unzip -q "$RUNNER_TEMP/wtv.wgt" -d "$RUNNER_TEMP/wgt"
           tizen package -t wgt -s ci -o "$RUNNER_TEMP/signed" -- "$RUNNER_TEMP/wgt"
           ls -l "$RUNNER_TEMP"/signed/*.wgt
+      - name: Show the Tizen CLI log
+        if: failure()
+        run: cat "$HOME/tizen-studio-data/cli/logs/cli.log" || true
