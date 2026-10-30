@@ -89,4 +89,5 @@ test("built index.html references only relative assets, as classic scripts", asy
   expect(urls).not.toHaveLength(0);
   for (const url of urls) expect(url).toMatch(/^\.\//);
   expect(html).not.toContain('type="module"');
+  expect(html).not.toContain("crossorigin");
 });

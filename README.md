@@ -55,8 +55,8 @@ Tizen package, from the repository root:
 tizen-app/package.sh   # builds web/, then zips tizen-app/ and web/dist into tizen-app/build/wtv.wgt
 ```
 
-The package is unsigned and made without the Tizen CLI, which has no arm64 build. CI checks it with
-Tizen Studio's CLI.
+The package is unsigned and made without the Tizen CLI, which has no arm64 build. Nothing has
+validated it with the Tizen CLI yet; a CI check is a separate pending change.
 
 ### Installing on a device
 

@@ -12,7 +12,9 @@ function classicScript(): Plugin {
     name: "classic-script",
     enforce: "post",
     transformIndexHtml: (html) =>
-      html.replace(/<script type="module" crossorigin /g, "<script defer "),
+      html
+        .replace(/<script type="module" /g, "<script defer ")
+        .replace(/ crossorigin(="[^"]*")?/g, ""),
   };
 }
 
