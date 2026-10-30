@@ -95,16 +95,14 @@ both shells and chooses the player bridge (AGENTS.md, Not decided yet).
   alone, or the video signal stopping.
 - Media keys: play/pause pauses and resumes, and resuming jumps to the live edge; stop closes the
   player.
-- When the stream ends, or the channel is offline at launch, a dialog says "<channel> has ended" or
-  "<channel> is offline" and counts down 6 s, per SmartTwitchTV. It offers to stay on the stream,
+- When the stream ends, or the channel is offline at launch, a dialog says "<channel> is now offline" and counts down 6 s, per SmartTwitchTV. It offers to stay on the stream,
   with the app checking periodically until it is live again, or to leave. Both cases use the same
   dialog and logic. With nothing behind the player in this phase, the countdown ends by staying.
 - Failures: network loss, playback error.
 
 **Scope: `live-chat`**
 
-- Chat sits over the video on the right, full height and 20% of the width, as in SmartTwitchTV's
-  default placement. Overlay controls move it, resize it and switch to side by side, as in
+- Chat sits over the video on the right, full height and 20% of the width. Overlay controls move it, resize it and switch to side by side, as in
   SmartTwitchTV. DOWN, or a control in the info overlay, shows and hides it. These choices survive
   a restart.
 - Chat opens with recent history, then shows live messages, undelayed. Where possible, a line
