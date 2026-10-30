@@ -42,8 +42,7 @@ All of these hold:
 
 Any one of these is enough:
 
-- The fix changes intended behavior (constitution Principle I).
-- The fix edits a `spec.md`, a locked path, `.github/workflows/`, or `.devcontainer/`. Locked
+- The fix edits a locked path, `.github/workflows/`, or `.devcontainer/`. Locked
   paths are those matched by the `Edit(//workspace/…)` deny rules in `main`'s copy of
   `.devcontainer/managed-settings.json`, not the pull request's. Read it with
   `git show origin/main:.devcontainer/managed-settings.json`.
@@ -64,6 +63,25 @@ as the question the supervisor has to answer.
 Anything else worth knowing: readability, naming, a small refactor, extra hardening, or a minor
 problem that predates this pull request. List at most three notes. If you found more, give their
 count in the summary instead.
+
+## Spec changes
+
+The agent owns specs and writes them from the supervisor's roadmap, `docs/phases.md`
+(constitution Principle I). For a pull request that changes a `spec.md`, this review is the only
+check of that spec against the supervisor's intent. Read the roadmap from the base branch, with
+`git show origin/<base>:docs/phases.md`, and the agent decisions from the spec's Clarifications
+section (AGENTS.md, Agent decisions). Report each of these as `[fix]`:
+
+- A requirement that contradicts the roadmap, or something the roadmap puts in this spec's scope
+  that the spec leaves out, with no agent decision recording why.
+- An agent decision whose reason doesn't hold: the roadmap passage, SmartTwitchTV behavior, or
+  observation it cites doesn't say what it claims, or it departs from the roadmap for a reason
+  Principle I doesn't accept, such as effort or simplicity.
+- A removed `[NEEDS CLARIFICATION]` marker, or a behavior change to an existing spec, with no
+  agent decision recording it.
+
+Done when the spec follows the roadmap there, or an agent decision records a departure whose
+reason holds. A departure whose recorded reason holds is not a finding.
 
 ## Do not report
 

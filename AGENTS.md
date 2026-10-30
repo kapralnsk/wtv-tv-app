@@ -37,8 +37,14 @@ command is recorded there when it is added. Do not invent others.
 
 ## Scope
 
-`docs/phases.md` is the supervisor's roadmap. It provides context in specify and clarify
-sessions and is never a source of requirements; only specs are.
+`docs/phases.md` is the supervisor's roadmap and states their intent. The agent writes specs from
+it, and agent review checks spec changes against it (constitution Principle I). Plans, tasks and
+code take requirements only from specs. It is a locked path: only the supervisor edits it.
+
+On this branch, the agent works through the roadmap unattended, Phase 1 to Phase 4, and delivers
+one GitHub Release with an Android and a Tizen build of all four. Earlier releases are allowed
+when needed, but are not the goal. Phase 5 needs the supervisor to sign in to w.tv, so the agent
+does not start it.
 
 ## Workflow
 
@@ -49,10 +55,37 @@ Spec directories map to user-facing capabilities (live viewing, VOD viewing, cha
 to phases or components.
 
 Existing feature: follow constitution Principle I. A behavior change edits the feature's
-`spec.md` with the supervisor, then re-runs `/speckit-plan` and `/speckit-tasks`.
+`spec.md`, recording an agent decision, then re-runs `/speckit-plan` and `/speckit-tasks`.
 
 Component knowledge relied on beyond one feature is promoted from its plan to
 `docs/architecture/`.
+
+### Agent decisions
+
+The agent owns specs (constitution Principle I), so it answers every question a spec-kit command
+would put to the supervisor, and never waits for a reply:
+
+- `/speckit-specify`: the feature description is the roadmap's section for that spec, naming its
+  phase. Resolve each `[NEEDS CLARIFICATION]` marker yourself instead of presenting questions.
+  Unobserved w.tv behavior is the exception: it stays marked until an observation resolves it
+  (Principle VIII).
+- `/speckit-clarify`: answer each question with the option you recommend.
+- Any command that asks whether to proceed: decide, and say what you decided in the pull request
+  description.
+
+Record each answer, and each implementation discovery that changes intended behavior, in the
+spec's `## Clarifications` section under that day's `### Session YYYY-MM-DD` heading, in
+spec-kit's format with the reason appended:
+
+```markdown
+- Q: <question> → A: <answer> (agent decision: <reason>)
+```
+
+The reason names what settled the question: a roadmap passage, a SmartTwitchTV behavior, a
+recorded observation, or the constitution or this file. When nothing settles it, say so and give
+the trade-off that decided it. A decision that departs from the roadmap starts its reason with
+`departs from roadmap:` and names what forces the departure. Defaults that `/speckit-specify`
+records under Assumptions stay there.
 
 ### Pull requests
 
