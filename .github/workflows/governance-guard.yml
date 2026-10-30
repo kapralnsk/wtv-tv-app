@@ -1,12 +1,13 @@
 # Fails an implementer pull request that changes a locked path (AGENTS.md, Pull requests). The
-# supervisor makes it a required check on main and merges past it when they asked for the change.
+# supervisor makes it a required check on main and experiment/autonomy, and merges past it when
+# they asked for the change.
 # It reads the file list from the API and never checks out pull request code.
 name: Governance guard
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [main]
+    branches: [main, experiment/autonomy]
 
 env:
   IMPLEMENTER: mechakapral[bot]
