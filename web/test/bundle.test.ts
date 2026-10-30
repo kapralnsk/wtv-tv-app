@@ -82,3 +82,11 @@ test("emitted JS uses only syntax Chromium M69 supports", async () => {
     expect([...found], file).toEqual([]);
   }
 });
+
+test("built index.html references only relative assets, as classic scripts", async () => {
+  const html = await readFile(join(outDir, "index.html"), "utf8");
+  const urls = [...html.matchAll(/\b(?:src|href)="([^"]*)"/g)].map((match) => match[1] ?? "");
+  expect(urls).not.toHaveLength(0);
+  for (const url of urls) expect(url).toMatch(/^\.\//);
+  expect(html).not.toContain('type="module"');
+});
