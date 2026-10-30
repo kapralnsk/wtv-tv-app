@@ -1,0 +1,120 @@
+# Builds both targets and uploads the debug APK and the unsigned .wgt (AGENTS.md, Commands). It
+# never comments: the reviewer trusts the default token's comments.
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # Tizen Studio 5.6's web-cli installer (Tizen CLI), from download.tizen.org.
+  TIZEN_INSTALLER_URL: https://download.tizen.org/sdk/Installer/tizen-studio_5.6/web-cli_Tizen_Studio_5.6_ubuntu-64.bin
+  TIZEN_INSTALLER_SHA256: 89c84fbc474dcfb02af193bcc763e2e7bf3259bf34cbf6b7f44ec2da024db7df
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+
+  android:
+    needs: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: 26
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: web
+      - run: ./gradlew :app:assembleDebug :app:testDebugUnitTest spotlessCheck
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wtv-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  tizen:
+    needs: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - name: Package the unsigned .wgt
+        run: tizen-app/package.sh "$RUNNER_TEMP/wtv.wgt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wtv-unsigned-wgt
+          path: ${{ runner.temp }}/wtv.wgt
+          retention-days: 14
+      - name: Cache the Tizen installer
+        id: installer
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/tizen-installer.bin
+          key: tizen-installer-${{ env.TIZEN_INSTALLER_SHA256 }}
+      - name: Download the Tizen installer
+        if: steps.installer.outputs.cache-hit != 'true'
+        run: curl -fsSL --retry 5 --retry-all-errors -o "$RUNNER_TEMP/tizen-installer.bin" "$TIZEN_INSTALLER_URL"
+      - name: Install the Tizen CLI
+        run: |
+          echo "$TIZEN_INSTALLER_SHA256  $RUNNER_TEMP/tizen-installer.bin" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/tizen-installer.bin"
+          "$RUNNER_TEMP/tizen-installer.bin" --accept-license "$HOME/tizen-studio" < /dev/null
+          echo "$HOME/tizen-studio/tools/ide/bin" >> "$GITHUB_PATH"
+      # The certificate and profile live only in this runner's home directory. The supervisor's
+      # certificates never reach CI, and the uploaded .wgt stays unsigned.
+      - name: Check the package with the Tizen CLI
+        run: |
+          tizen certificate -a ci -p ci-throwaway -c US -ct CI -o wtv -n ci -e ci@example.invalid -f ci
+          tizen security-profiles add -n ci -a "$HOME/tizen-studio-data/keystore/author/ci.p12" -p ci-throwaway
+          tizen cli-config "profiles.path=$HOME/tizen-studio-data/profile/profiles.xml"
+          # The CLI stores profile passwords in .pwd files encrypted through a desktop keyring,
+          # which a runner lacks, so it can't read them back. Put the passwords in the profile:
+          # the throwaway one, and the Tizen public distributor's, which ships with the CLI.
+          sed -i \
+            -e 's|password="[^"]*/ci\.pwd"|password="ci-throwaway"|' \
+            -e 's|password="[^"]*/tizen-distributor-signer\.pwd"|password="tizenpkcs12passfordsigner"|' \
+            "$HOME/tizen-studio-data/profile/profiles.xml"
+          mkdir "$RUNNER_TEMP/wgt" "$RUNNER_TEMP/signed"
+          unzip -q "$RUNNER_TEMP/wtv.wgt" -d "$RUNNER_TEMP/wgt"
+          tizen package -t wgt -s ci -o "$RUNNER_TEMP/signed" -- "$RUNNER_TEMP/wgt"
+          ls -l "$RUNNER_TEMP"/signed/*.wgt
+      - name: Show the Tizen CLI log
+        if: failure()
+        run: |
+          cat "$HOME/tizen-studio-data/profile/profiles.xml" || true
+          cat "$HOME/tizen-studio-data/cli/logs/cli.log" || true

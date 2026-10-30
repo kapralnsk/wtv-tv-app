@@ -32,6 +32,33 @@ android {
     }
 }
 
+val webDist = rootProject.layout.projectDirectory.dir("web/dist")
+val webAssets = layout.buildDirectory.dir("generated/webAssets")
+
+val requireWebDist by tasks.registering {
+    doLast {
+        if (!webDist.asFile.isDirectory) {
+            throw GradleException("web/dist is missing. Run `npm ci && npm run build` in web/ first.")
+        }
+    }
+}
+
+val copyWebDist by tasks.registering(Sync::class) {
+    dependsOn(requireWebDist)
+    from(webDist)
+    into(webAssets)
+}
+
+android.sourceSets
+    .getByName("main")
+    .assets.directories
+    .add(webAssets.get().asFile.path)
+
+tasks.configureEach {
+    if (name.startsWith("merge") && name.endsWith("Assets")) dependsOn(copyWebDist)
+}
+
 dependencies {
+    implementation(libs.androidx.webkit)
     testImplementation(libs.junit)
 }

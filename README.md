@@ -46,7 +46,44 @@ Android shell, from the repository root:
 ./gradlew spotlessCheck             # ktlint over Kotlin and Gradle scripts; spotlessApply rewrites
 ```
 
-Installing to a device or emulator has no agreed command yet.
+Both shells package `web/dist`, so run `npm run build` in `web/` before the Android build. Gradle
+fails with that instruction when `web/dist` is missing; it never runs npm.
+
+Tizen package, from the repository root:
+
+```sh
+tizen-app/package.sh   # builds web/, then zips tizen-app/ and web/dist into tizen-app/build/wtv.wgt
+```
+
+The package is unsigned and made without the Tizen CLI, which has no arm64 build. The Build
+workflow (`.github/workflows/build.yml`) checks it with the Tizen CLI on an x86_64 runner, and
+uploads it with the debug APK as workflow artifacts.
+
+### Installing on a device
+
+The dev container has no route to either device, so run these on your own machine.
+
+Chromecast with Google TV: enable developer options and USB debugging, then network debugging, on
+the device.
+
+```sh
+adb connect <device-ip>:5555
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Samsung Tizen TV (Tizen Studio with its CLI): switch the TV to developer mode (Apps, enter `12345`,
+turn Developer mode on and set the host PC's IP), then sign with your own author and distributor
+certificates and install.
+
+```sh
+sdb connect <tv-ip>
+tizen security-profiles list     # or create one with Certificate Manager
+tizen package -t wgt -s <profile> -- tizen-app/build/wtv.wgt
+tizen install -n wtv.wgt -t <tv-name> -- tizen-app/build
+```
+
+`tizen package` signs the `.wgt` in place. `sdb devices` shows `<tv-name>`. Neither install command
+has been run on a device yet, and on-device loading of the placeholder is unverified.
 
 ## Platform research
 
