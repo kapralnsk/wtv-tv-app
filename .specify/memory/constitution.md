@@ -19,17 +19,26 @@ introduce behavior absent from its spec.
 - A fix that restores behavior an existing spec already describes is not a behavioral change.
   It needs no new spec. It references the requirement it restores and adds a regression test.
   Refactors with no behavioral change need passing tests, not a spec.
-- The supervisor owns `spec.md`. The agent MAY draft and edit it under the supervisor's direct
-  supervision. During implementation, a discovery that changes intended behavior MUST halt work
-  and be raised to the supervisor; the agent MUST NOT amend the spec and continue on its own.
+- The agent owns `spec.md`. It writes each spec from the supervisor's roadmap, `docs/phases.md`,
+  which states the supervisor's intent, and decides every question the roadmap leaves open: a
+  `[NEEDS CLARIFICATION]` marker, a clarify question, or a discovery during implementation that
+  changes intended behavior. Each decision is recorded in the spec as an agent decision with its
+  reason, in the format `AGENTS.md` gives. A discovery during implementation edits the spec
+  first, then the code.
+- A spec MUST NOT contradict the roadmap, or leave out what the roadmap puts in its scope, unless
+  the departure is forced and an agent decision records why. Only observed platform behavior
+  (Principle VIII), this constitution, or a contradiction within the roadmap forces one. Only the
+  supervisor edits the roadmap.
 - Ported, inherited, or previously written code carries no authority. It MAY be consulted as
   reference but MUST be re-specified before it enters the codebase, and is never evidence of
   w.tv platform behavior (Principle VIII).
 
 Rationale: implementation is delegated to an AI agent working across sessions with no
-durable memory. The spec is the only persistent statement of intent, so it is the artifact
-of record — not the code, and not a prior branch. A living spec keeps exactly one current
-statement per feature.
+durable memory. The spec is the only detailed, persistent statement of intent, so it is the
+artifact of record — not the code, and not a prior branch. A living spec keeps exactly one
+current statement per feature. The agent decides what the roadmap leaves open, so its recorded
+decisions and the roadmap check in agent review are how the supervisor audits those decisions
+afterwards.
 
 ### II. Shared Web Core, Thin Platform Shells
 
@@ -223,6 +232,8 @@ guesses. Requiring observation evidence makes guesses visible and keeps drift de
   supervisor review. The reviewer:
   - runs in a fresh session with no implementation context;
   - checks the change against this constitution and the feature's spec, plan, and tasks;
+  - checks every change to a `spec.md` against the roadmap and the spec's agent decisions
+    (Principle I);
   - does not modify code.
 
   Findings are posted on the pull request. Each is answered there as fixed (citing the commit) or

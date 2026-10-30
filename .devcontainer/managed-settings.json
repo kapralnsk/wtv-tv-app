@@ -13,6 +13,7 @@
       "Edit(//workspace/AGENTS.md)",
       "Edit(//workspace/REVIEW.md)",
       "Edit(//workspace/docs/answering-reviews.md)",
+      "Edit(//workspace/docs/phases.md)",
       "Edit(//workspace/.claude/skills/**)",
       "Edit(//workspace/.devcontainer/managed-settings.json)"
     ]
