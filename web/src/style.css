@@ -1,0 +1,28 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: #fff;
+  font-family: sans-serif;
+}
+
+.placeholder {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 54px 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder h1 {
+  margin: 0;
+  font-size: 96px;
+}
+
+.placeholder p {
+  margin: 16px 0 0;
+  font-size: 32px;
+}

@@ -28,3 +28,4 @@ app/build
 web/node_modules
 web/dist
 *.tsbuildinfo
+tizen-app/build/

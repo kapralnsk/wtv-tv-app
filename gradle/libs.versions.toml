@@ -2,10 +2,12 @@
 agp = "9.2.0"
 kotlin = "2.4.21"
 junit = "4.13.2"
+webkit = "1.16.0"
 spotless = "8.10.4"
 ktlint = "1.8.0"
 
 [libraries]
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]
