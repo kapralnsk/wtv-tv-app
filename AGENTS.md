@@ -126,8 +126,8 @@ GitHub identities:
 - When a review produces findings, act on them and answer them as `docs/answering-reviews.md`
   says.
 - Merge a pull request yourself, with `gh pr merge --squash`, once the reviewer has approved its
-  current head and its required checks pass. Merge only into `experiment/autonomy`, never into
-  `main`.
+  current head, and its required checks and the Build workflow pass. Merge only into
+  `experiment/autonomy`, never into `main`.
 - Never approve. Never force-push.
 - The implementer cannot push changes under `.github/workflows/`: its app has no `workflows`
   permission. Commit them, and raise the push as blocked work.
@@ -152,8 +152,10 @@ affect.
 ### Releases
 
 Once all Phase 1 to 4 specs are merged, tag the head of `experiment/autonomy` and create one
-GitHub Release from the tag, with the Android and Tizen packages built by the `README.md`
-commands attached. The release notes list:
+GitHub Release from the tag. Build its packages from that tag with the `README.md` commands and
+attach them: the debug APK and the unsigned `.wgt`. The supervisor's Tizen certificates never
+reach the agent (constitution, Agent environment), so the notes say the `.wgt` must be signed
+before it installs, as `README.md` (Installing on a device) shows. The release notes list:
 
 - what each phase delivers, by spec;
 - every declared Tizen reduction;
