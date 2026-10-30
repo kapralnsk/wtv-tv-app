@@ -34,7 +34,8 @@ All of these hold:
 2. It breaks what the feature's spec, the constitution, or AGENTS.md requires, or it is a defect
    whose correct behavior is not in question: a crash, a race, data loss, a security hole such as
    a leaked secret or an injection, or a broken build or test.
-3. You confirmed it in the code.
+3. You confirmed it in the code. If you couldn't, it is still `[fix]`: say that it is
+   unconfirmed and what would confirm it. The implementer confirms it before fixing it.
 4. You state the fix. When more than one is reasonable, state the one you recommend, and each
    alternative with its trade-off in one line.
 5. The fix stays within the files and behavior this pull request already changes.
@@ -55,7 +56,6 @@ Any one of these is enough:
   description says the supervisor asked for the change; the question is whether they did.
 - The fix changes the supervisor's workflow or adds recurring cost.
 - Verifying the fix needs a login or a supervisor action.
-- It would be `[fix]` if true, but you could not confirm it.
 
 If you cannot decide between `[fix]` and `[escalate]`, use `[escalate]`. Phrase each escalation
 as the question the supervisor has to answer. An open `[escalate]` finding blocks the pull request
