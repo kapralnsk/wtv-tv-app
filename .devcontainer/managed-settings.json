@@ -3,16 +3,14 @@
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable",
     "deny": [
-      "Bash(gh pr merge *)",
       "Bash(gh pr review *)",
-      "Bash(gh api *pulls/*/merge*)",
-      "Bash(gh api *mergePullRequest*)",
       "Bash(gh api *APPROVE*)",
       "Edit(//workspace/LICENSE.md)",
       "Edit(//workspace/.specify/memory/constitution.md)",
       "Edit(//workspace/AGENTS.md)",
       "Edit(//workspace/REVIEW.md)",
       "Edit(//workspace/docs/answering-reviews.md)",
+      "Edit(//workspace/docs/phases.md)",
       "Edit(//workspace/.claude/skills/**)",
       "Edit(//workspace/.devcontainer/managed-settings.json)"
     ]

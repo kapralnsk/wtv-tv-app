@@ -19,17 +19,26 @@ introduce behavior absent from its spec.
 - A fix that restores behavior an existing spec already describes is not a behavioral change.
   It needs no new spec. It references the requirement it restores and adds a regression test.
   Refactors with no behavioral change need passing tests, not a spec.
-- The supervisor owns `spec.md`. The agent MAY draft and edit it under the supervisor's direct
-  supervision. During implementation, a discovery that changes intended behavior MUST halt work
-  and be raised to the supervisor; the agent MUST NOT amend the spec and continue on its own.
+- The agent owns `spec.md`. It writes each spec from the supervisor's roadmap, `docs/phases.md`,
+  which states the supervisor's intent, and decides every question the roadmap leaves open: a
+  `[NEEDS CLARIFICATION]` marker, a clarify question, or a discovery during implementation that
+  changes intended behavior. Each decision is recorded in the spec as an agent decision with its
+  reason, in the format `AGENTS.md` gives. A discovery during implementation edits the spec
+  first, then the code.
+- A spec MUST NOT contradict the roadmap, or leave out what the roadmap puts in its scope, unless
+  the departure is forced and an agent decision records why. Only observed platform behavior
+  (Principle VIII), this constitution, or a contradiction within the roadmap forces one. Only the
+  supervisor edits the roadmap.
 - Ported, inherited, or previously written code carries no authority. It MAY be consulted as
   reference but MUST be re-specified before it enters the codebase, and is never evidence of
   w.tv platform behavior (Principle VIII).
 
 Rationale: implementation is delegated to an AI agent working across sessions with no
-durable memory. The spec is the only persistent statement of intent, so it is the artifact
-of record — not the code, and not a prior branch. A living spec keeps exactly one current
-statement per feature.
+durable memory. The spec is the only detailed, persistent statement of intent, so it is the
+artifact of record — not the code, and not a prior branch. A living spec keeps exactly one
+current statement per feature. The agent decides what the roadmap leaves open, so its recorded
+decisions and the roadmap check in agent review are how the supervisor audits those decisions
+afterwards.
 
 ### II. Shared Web Core, Thin Platform Shells
 
@@ -212,25 +221,34 @@ guesses. Requiring observation evidence makes guesses visible and keeps drift de
   4. D-pad reachability and focus behavior are covered by the traversal tests of Principle IV.
 - **Verification honesty**: the agent MUST report what it actually ran. Untested changes are
   labeled untested; failures are surfaced with their output.
-- **On-device checks**: changes to playback, focus traversal, or performance MUST be verified on
-  real Android hardware before being called complete. When the agent cannot run that check, it
-  MUST say so and hand the verification to the supervisor rather than inferring success. Tizen
-  changes are verified by a supervisor smoke check on a Tizen 5.5-class device before a roadmap
-  phase is marked complete.
-- **Pull requests**: every feature change reaches `main` through a pull request opened by the
-  implementer's identity. The agent never merges.
-- **Agent review**: every feature pull request passes an independent agent review before
-  supervisor review. The reviewer:
+- **On-device checks**: changes to playback, focus traversal, or performance are verified on
+  real hardware by the supervisor: Android on a Chromecast with Google TV, Tizen by a smoke check
+  on a Tizen 5.5-class device. The agent cannot run these checks and MUST NOT infer their result.
+  They do not block a merge or the next roadmap phase. Until they run, each change that needs one
+  is labeled unverified on device, and the release notes list it.
+- **Pull requests**: every feature change reaches `experiment/autonomy` through a pull request
+  opened by the implementer's identity. The implementer merges a pull request only when agent
+  review has approved its current head, and never merges into `main`.
+- **Agent review**: every feature pull request passes an independent agent review. The reviewer:
   - runs in a fresh session with no implementation context;
   - checks the change against this constitution and the feature's spec, plan, and tasks;
+  - checks every change to a `spec.md` against the roadmap and the spec's agent decisions
+    (Principle I);
   - does not modify code.
 
   Findings are posted on the pull request. Each is answered there as fixed (citing the commit) or
-  deferred (with a reason). Agent review informs the supervisor's decision and never replaces it.
+  deferred (with a reason). Agent review stands in for the supervisor's review: it approves a
+pull request once no `[fix]` or `[escalate]` finding is open (`REVIEW.md`).
 
 - **Identities**: feature pull requests involve three distinct GitHub identities: the implementer
-  and the reviewer (both agents) and the supervisor, who alone approves. A feature pull request
-  merges only with the supervisor's approval. Agent self-approval does not exist.
+  and the reviewer (both agents) and the supervisor. Only the reviewer and the supervisor approve.
+  A feature pull request merges only with an approval of its current head. Agent self-approval
+  does not exist: the implementer never approves.
+- **Blocked work**: when a rule needs the supervisor (an `[escalate]` finding, an observation the
+  agent cannot make, or a change to this constitution, a locked path, `.devcontainer/` or a
+  workflow), the agent opens an issue assigned to the supervisor that states exactly what is
+  needed. It then continues with any work the block doesn't affect, and stops only when none is
+  left. It never works around the block. A failed workspace or isolation check blocks all work.
 - **Agent environment**: the agent works in an isolated environment whose only GitHub credential
   is the implementer's. Credentials that carry the supervisor's authority over the repository or
   its releases (their GitHub login, signing keys, store accounts) MUST NOT be reachable from it,
@@ -257,8 +275,8 @@ artifact is corrected.
 amendment's pull request description, and adopted only by the supervising developer. Any
 amendment that invalidates existing specs MUST state how those specs are migrated. Principles
 MUST NOT be weakened silently — a relaxation is an amendment like any other. Feature work never
-modifies this constitution; when a principle appears to need changing, the agent halts and
-raises it to the supervisor.
+modifies this constitution; when a principle appears to need changing, the agent raises it to the
+supervisor as blocked work (Development Workflow) and leaves the principle as it is.
 
 **Versioning policy**: semantic versioning of governance.
 
@@ -276,4 +294,4 @@ re-specifying — never as an acceptable exception.
 commands, code style) and MUST remain consistent with this constitution. On conflict, this
 constitution governs and `AGENTS.md` is corrected.
 
-**Version**: 3.1.0 | **Ratified**: 2026-10-05 | **Last Amended**: 2026-10-27
+**Version**: 4.0.0 | **Ratified**: 2026-10-05 | **Last Amended**: 2026-10-30
