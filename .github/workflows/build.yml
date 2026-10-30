@@ -35,15 +35,8 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: npm run build
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: web-dist
-          path: web/dist
-          include-hidden-files: true
-          retention-days: 7
 
   android:
-    needs: web
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -53,10 +46,13 @@ jobs:
           distribution: temurin
           java-version: 26
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          name: web-dist
-          path: web/dist
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: web
       - run: ./gradlew :app:assembleDebug :app:testDebugUnitTest spotlessCheck
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
